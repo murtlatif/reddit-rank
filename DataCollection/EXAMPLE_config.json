@@ -1,0 +1,11 @@
+{
+    "CHANGE NAME TO CONFIG.JSON": "THEN DELETE THIS LINE",
+
+    "client_auth": {
+        "client_id": "sample_client_id",
+        "client_secret": "sample_client_secret",
+        "user_agent": "sample_user_agent"
+    },
+    
+    "data_export_path": "./Data/"
+}

@@ -1,0 +1,7 @@
+- convert numbers to magnitude near that number
+- large numbers convert to 'many'
+- currency symbols into words
+- r/--- to 'subreddit'
+- SO -> signifcant other 
+- OP -> original poster
+- collect serious flairs, remove [Serious]
