@@ -1,4 +1,4 @@
-<p padding=0 margin=0 align="center">
+<p align="center">
    <img width="200" src="Logo/LogoFull.png">
 </p>
 <hr> 
@@ -9,6 +9,8 @@
     * [Project Proposal Report](#proposal_report "Jump to Project Proposal")
     * [Project Proposal Presentation](#proposal_presentation)
 
+
+<br />
 
 <a name='tasks'></a>
 ## Project Tasks
@@ -25,9 +27,11 @@ The Project Proposal Report is a document that outlines:
 * Potential risks of the project
 * Ethical issues regarding the project
 
+<br />
+
 <a name='proposal_presentation'></a>
 ### Project Proposal Presentation
-[View Project Proposal Presentation](ProjectProposal/RedditRank-ProposalPresentation.pdf "View Project Proposal Presentation")
+[View Project Proposal Presentation](ProjectProposal/RedditRank-ProposalPresentation.pptx "View Project Proposal Presentation")
 
 The Project Proposal Presentation is the visual aid to a presentation that quickly summarized the contents of the Project Proposal Report. It gives a brief explanation of:
 * The main idea of the project
