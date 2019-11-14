@@ -4,7 +4,6 @@ import sys
 import time
 
 from config import get_config
-from clientauth import authorization_info_from_json
 from prawmanager import PRAWManager
 from datamanager import DataManager
 
@@ -34,7 +33,7 @@ class DataCollector:
         if not hasattr(self, args.command):
             print('Unrecognized command.')
             parser.print_help()
-            exit(1)
+            sys.exit(1)
 
         # Get authorization info from client_auth.json
         client_auth_info = get_config('client_auth')
@@ -51,20 +50,51 @@ class DataCollector:
 
     """
     Fetches the latest 1000 posts and saves the data in a CSV file.
-
-    fetch-type: determines whether the data obtained is actual post data or
-        the IDs of the submissions
-    subreddit: which subreddit to extract the submissions from
-    sort-by: the sorting method of the submissions (hot, new or top)
-    
     The data is exported into the directory specified by config.json.
+
+    :param fetch-type: determines whether the data obtained is actual post data     or the IDs of the submissions
+    :param subreddit: which subreddit to extract the submissions from
+    :param sort-by: the sorting method of the submissions (hot, new or top)
+    :return: DataFrame of the collected data
+    """
+
+    def __collect(self, fetch_type, subreddit, sort_by):
+
+        print(
+            f'Fetching posts... type:{fetch_type}, subreddit:{subreddit}, '
+            f'sort_by:{sort_by}')
+
+        if fetch_type == 'ids':
+            submissions = self.praw_manager.get_submission_ids(
+                subreddit, sort_by=sort_by)
+            self.data_manager.save_to_csv(
+                submissions, file_identifier=subreddit+'_submission_id_')
+            print(f'Successfully collected and saved submissions.')
+            return submissions
+
+        elif fetch_type == 'posts':
+            posts = self.praw_manager.get_posts(subreddit, sort_by=sort_by)
+            self.data_manager.save_to_csv(
+                posts, file_identifier=subreddit+'_posts_')
+            print(f'Successfully collected and saved submissions.')
+            return posts
+
+        else:
+            print('Invalid fetch_type for collecting data:', fetch_type)
+            return False
+
+    """
+    Periodically performs __collect to obtain the requested data
+    every 2 hours.
+    To-do: allow customization of periodicity
     """
 
     def autocollect(self):
         # Create an argument parser to extract subcommand args
         parser = argparse.ArgumentParser(
             description='Periodically fetches and saves reddit posts',
-            usage='collectdata.py autocollect --fetch-type [-h, --help] [-r, --subreddit] [-s, --sort-by]')
+            usage=('collectdata.py autocollect --fetch-type [-h, --help] '
+                   '[-r, --subreddit] [-s, --sort-by]'))
         parser.add_argument('--fetch-type',
                             choices=['ids', 'posts'], required=True)
         parser.add_argument('--subreddit', '-r', default='AskReddit')
@@ -74,15 +104,16 @@ class DataCollector:
         # Only take arguments after the subcommand
         args = parser.parse_args(sys.argv[2:])
 
-        if args.fetch_type == 'ids':
-            submissions = self.praw_manager.get_submission_ids(args.subreddit, sort_by=args.sort_by)
-            self.data_manager.save_to_csv(
-                submissions, file_identifier=args.subreddit+'_submission_id_')
+        schedule.every(2).hours.do(self.__collect, fetch_type=args.fetch_type,
+                                   subreddit=args.subreddit, sort_by=args.sort_by)
 
-        elif args.fetch_type == 'posts':
-            posts = self.praw_manager.get_posts(args.subreddit, sort_by=args.sort_by)
-            self.data_manager.save_to_csv(
-                posts, file_identifier=args.subreddit+'_posts_')
+        while True:
+            try:
+                schedule.run_pending()
+                time.sleep(1)
+            except KeyboardInterrupt:
+                print('Stopping automatic collection...')
+                sys.exit()
 
 
 def main(*args, **kwargs):

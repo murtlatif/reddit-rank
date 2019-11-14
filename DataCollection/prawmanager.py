@@ -2,6 +2,8 @@ import praw
 import pandas as pd
 from datetime import datetime
 
+from config import get_config
+
 
 class PRAWManager:
 
@@ -12,10 +14,10 @@ class PRAWManager:
 
     def __init__(self, client_id, client_secret, user_agent):
         self.reddit = praw.Reddit(
-            client_id=client_id, client_secret=client_secret, user_agent=user_agent)
+            client_id=client_id, client_secret=client_secret,
+            user_agent=user_agent)
 
-        self.collecting_attributes = [
-            'title', 'num_comments', 'spoiler', 'over_18', 'created_utc', 'score']
+        self.collecting_attributes = get_config('fetch_attributes')
 
     """
     Retrieves num_posts posts from the specified subreddit from the section
@@ -58,11 +60,12 @@ class PRAWManager:
 
     def get_submission_ids(self, subreddit, num_posts=1000, sort_by='hot'):
 
-        submission_ids = self.get_from_subreddit(subreddit, num_posts, ['id'], sorting=sort_by)
+        submission_ids = self.get_from_subreddit(
+            subreddit, num_posts, ['id'], sorting=sort_by)
         return submission_ids
 
-
     def get_posts(self, subreddit, num_posts=1000, sort_by='hot'):
-        
-        posts = self.get_from_subreddit(subreddit, num_posts, self.collecting_attributes, sort_by)
+
+        posts = self.get_from_subreddit(
+            subreddit, num_posts, self.collecting_attributes, sort_by)
         return posts

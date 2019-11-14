@@ -1,7 +1,9 @@
-- convert numbers to magnitude near that number
-- large numbers convert to 'many'
-- currency symbols into words
-- r/--- to 'subreddit'
-- SO -> signifcant other 
-- OP -> original poster
-- collect serious flairs, remove [Serious]
+✓ remove duplicates
+✓ remove posts younger than 2 days
+✓ convert numbers to magnitude near that number
+✓ large numbers convert to 'many'
+✓ currency symbols into words - supports dollars, euros, pounds, and yen
+✓ r/--- to 'subreddit'
+✓ SO -> signifcant other 
+✓ OP -> overpowered
+✓ remove [Serious]

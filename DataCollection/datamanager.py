@@ -1,6 +1,7 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
+import filters
 from config import get_config
 
 
@@ -31,3 +32,17 @@ class DataManager:
 
         data_to_save.to_csv(output_dir, index=False)
         return True
+
+    def clean_data(self, df):
+        
+        # Remove duplicates
+        df.drop_duplicates(inplace=True)
+
+        # Apply filters.filter_post_age to only keep posts more than 2 days old
+        df = df[df['created_utc'].apply(filters.filter_post_age)]
+
+        # Apply modification filters on the title
+        df['title'] = df['title'].apply(filters.update_title)
+
+
+        
