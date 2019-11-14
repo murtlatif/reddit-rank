@@ -17,9 +17,9 @@ Modifies title to be more suitable for word vector transformation.
 """
 def update_title(title):
     new_title = replace_subreddit(title)
-    new_title = update_currency_to_word(title)
-    new_title = update_numbers(title)
-    new_title = replace_common_words(title)
+    new_title = update_currency_to_word(new_title)
+    new_title = update_numbers(new_title)
+    new_title = replace_common_words(new_title)
     return new_title
 
 """
@@ -45,8 +45,16 @@ The number 420 is kept as its original number.
 Any numbers between 101 and 9,999,999,999 are rounded down to the nearest
 order of magnitude (e.g. 4266 -> 1000, 7412233 -> 1000000)
 """
-def _replace_number(num_as_str):
+def _replace_number(num_match):
+    num_as_str = num_match.group()
     num = float(num_as_str)
+
+    # Handle numbers that are not within the logarithmic domain
+    if num == 0:
+        return num_as_str
+    elif num < 0:
+        num = -num
+    
     log_num = int(math.log10(num))
     if log_num <= 1 or (num_as_str == '420'):
         return num_as_str
@@ -77,6 +85,16 @@ def replace_common_words(title):
     new_title = re.sub(r'(\W)OP(\W)', r'\1overpowered\2', new_title)
 
     # Remove the [Serious] or [serious] tag
-    re.sub(r'[\[\(]serious[\)\]]', '', new_title, flags=re.IGNORECASE)
+    new_title = re.sub(r'[\[\(]serious[\)\]]', '', new_title, flags=re.IGNORECASE)
 
     return new_title
+
+"""
+Replaces the link_flair_text column to a boolean value column determining
+whether or not the link contains a 'Serious Replies Only' flair.
+"""
+def has_flair(flair_text):
+    if flair_text == 'Serious Replies Only':
+        return True
+    else:
+        return False

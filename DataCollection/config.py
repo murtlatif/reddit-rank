@@ -10,4 +10,4 @@ def get_config(setting):
     if setting in config:
         return config[setting]
     else:
-        raise Exception(f'Setting does not exist: {setting}')
+        raise ValueError(f'Setting does not exist: {setting}')

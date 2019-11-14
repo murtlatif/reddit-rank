@@ -35,7 +35,8 @@ class PRAWManager:
                 if hasattr(post, attribute):
                     post_data.append(getattr(post, attribute))
                 else:
-                    raise Exception(f'Invalid attribute given: {attribute}')
+                    raise AttributeError(
+                        f'Invalid attribute given: {attribute}')
             result.append(post_data)
 
         posts_df = pd.DataFrame(result, columns=attributes)
@@ -57,7 +58,7 @@ class PRAWManager:
             # Applies subred.hot(), subred.top() or subred.new()
             return getattr(subred, sorting)(limit=num_posts)
         else:
-            raise Exception(
+            raise ValueError(
                 "Invalid sorting type provided. Try 'hot', 'top' or 'new'.")
 
     """
@@ -97,14 +98,15 @@ class PRAWManager:
     def get_posts_from_ids(self, df_ids):
 
         if not isinstance(df_ids, pd.DataFrame):
-            raise Exception('Submission IDs must be given in a DataFrame')
+            raise TypeError('Submission IDs must be given in a DataFrame')
         if not 'id' in df_ids:
             print('Submission ids must have a column header')
-            raise Exception('Given dataframe does not have a column for "ids"')
-        
+            raise AttributeError(
+                'Given dataframe does not have a column for "ids"')
+
         # Extract the list of ids from the Dataframe by reshaping it to 1D
         req_ids = df_ids.values.reshape(-1).tolist()
         req_ids = [self._get_req_id_from_submission_id(pid) for pid in req_ids]
-        
+
         submissions = self.reddit.info(req_ids)
         return self.submissions_to_df(submissions, self.collecting_attributes)
