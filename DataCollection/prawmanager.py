@@ -20,29 +20,16 @@ class PRAWManager:
         self.collecting_attributes = get_config('fetch_attributes')
 
     """
-    Retrieves num_posts posts from the specified subreddit from the section
-    specified by the parameter `sorting` which can be 'hot', 'top' or 'new'.
-    The attributes obtained are specified by a list `attributes` which 
-    contains the names of the attributes requested.
-    The result is a DataFrame object of the requested posts.
+    Converts a set of submissions to a DataFrame object with the columns
+    as the requested attributes.
+
+    :param submissions: ListingGenerator or other set of submissions
+    :param attributes: list of attribute strings to extract from each submission
     """
 
-    def get_from_subreddit(self, subreddit, num_posts, attributes, sorting='hot'):
-
+    def submissions_to_df(self, submissions, attributes):
         result = []
-        subred = self.reddit.subreddit(subreddit)
-
-        if sorting == 'hot':
-            posts = subred.hot(limit=num_posts)
-        elif sorting == 'top':
-            posts = subred.top(limit=num_posts)
-        elif sorting == 'new':
-            posts = subred.new(limit=num_posts)
-        else:
-            raise Exception(
-                "Invalid sorting type provided. Try 'hot', 'top' or 'new'.")
-
-        for post in posts:
+        for post in submissions:
             post_data = []
             for attribute in attributes:
                 if hasattr(post, attribute):
@@ -55,17 +42,69 @@ class PRAWManager:
         return posts_df
 
     """
+    Retrieves num_posts posts from the specified subreddit from the section
+    specified by the parameter `sorting` which can be 'hot', 'top' or 'new'.
+    The attributes obtained are specified by a list `attributes` which 
+    contains the names of the attributes requested.
+    The result is a ListingGenerator object of the requested posts.
+    """
+
+    def get_from_subreddit(self, subreddit, num_posts, sorting='hot'):
+
+        subred = self.reddit.subreddit(subreddit)
+
+        if sorting == 'hot' or sorting == 'top' or sorting == 'new':
+            # Applies subred.hot(), subred.top() or subred.new()
+            return getattr(subred, sorting)(limit=num_posts)
+        else:
+            raise Exception(
+                "Invalid sorting type provided. Try 'hot', 'top' or 'new'.")
+
+    """
     Obtains the ids for the requested selection of posts
     """
 
     def get_submission_ids(self, subreddit, num_posts=1000, sort_by='hot'):
 
         submission_ids = self.get_from_subreddit(
-            subreddit, num_posts, ['id'], sorting=sort_by)
+            subreddit, num_posts, sorting=sort_by)
+        submission_ids = self.submissions_to_df(submission_ids, ['id'])
         return submission_ids
+
+    """
+    Obtains a set of post information for the requested selection of posts
+    """
 
     def get_posts(self, subreddit, num_posts=1000, sort_by='hot'):
 
-        posts = self.get_from_subreddit(
-            subreddit, num_posts, self.collecting_attributes, sort_by)
+        posts = self.get_from_subreddit(subreddit, num_posts, sort_by)
+        posts = self.submissions_to_df(posts, self.collecting_attributes)
         return posts
+
+    """
+    Obtains the request_id used for requesting submissions by id.
+    The prefix t3_ is used for submissions.
+    """
+
+    def _get_req_id_from_submission_id(self, post_id):
+        # Submission API requests by ID are made using t3_<id>
+        return post_id if post_id.startswith('t3_') else f't3_{post_id}'
+
+    """
+    Obtains a set of post information from a set of ids
+    """
+
+    def get_posts_from_ids(self, df_ids):
+
+        if not isinstance(df_ids, pd.DataFrame):
+            raise Exception('Submission IDs must be given in a DataFrame')
+        if not 'id' in df_ids:
+            print('Submission ids must have a column header')
+            raise Exception('Given dataframe does not have a column for "ids"')
+        
+        # Extract the list of ids from the Dataframe by reshaping it to 1D
+        req_ids = df_ids.values.reshape(-1).tolist()
+        req_ids = [self._get_req_id_from_submission_id(pid) for pid in req_ids]
+        
+        submissions = self.reddit.info(req_ids)
+        return self.submissions_to_df(submissions, self.collecting_attributes)

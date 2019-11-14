@@ -7,5 +7,15 @@
         "user_agent": "sample_user_agent"
     },
     
+    "fetch_attributes": [
+        "title",
+        "id",
+        "num_comments",
+        "spoiler",
+        "over_18",
+        "created_utc",
+        "score"
+    ],
+    
     "data_export_path": "./Data/"
 }

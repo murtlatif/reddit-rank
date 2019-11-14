@@ -23,10 +23,11 @@ class DataCollector:
 
             The available commands are:
                 autocollect     Periodically fetches and saves reddit posts
+                convert         Generates post data from a set of submission_ids
             ''')
 
         parser.add_argument(
-            'command', help='Subcommand to run', metavar='command', choices=['autocollect'])
+            'command', help='Subcommand to run', metavar='command', choices=['autocollect', 'convert'])
         args = parser.parse_args(sys.argv[1:2])
 
         # Only accept commands that are methods of this class
@@ -114,6 +115,34 @@ class DataCollector:
             except KeyboardInterrupt:
                 print('Stopping automatic collection...')
                 sys.exit()
+
+    """
+    Generates a table of submission data from a set of submission IDs.
+    The submission IDs are passed in through a CSV file.
+    The attributes obtained for each submission is the set of attributes from declared in config.json
+    """
+
+    def convert(self):
+        # Create an argument parser to extract subcommand args
+        parser = argparse.ArgumentParser(
+            description='Generates a CSV of submission details from a CSV of submission IDs',
+            usage='collectdata.py convert file [-h, --help]')
+        parser.add_argument('file')
+
+        # Only take arguments after the subcommand
+        args = parser.parse_args(sys.argv[2:])
+
+        submission_ids = self.data_manager.load_from_csv(args.file)
+        if submission_ids is False:
+            raise Exception('Failed to load CSV file:' + args.file)
+
+        submissions = self.praw_manager.get_posts_from_ids(submission_ids)
+
+        # Extract the file name without the rest of the path
+        new_file_name = args.file.split('/')[-1][:-4]
+        new_file_name = 'converted_' + new_file_name
+        
+        self.data_manager.save_to_csv(submissions, timestamp=False, file_identifier=new_file_name)
 
 
 def main(*args, **kwargs):
