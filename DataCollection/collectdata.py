@@ -7,6 +7,7 @@ from config import get_config
 from prawmanager import PRAWManager
 from datamanager import DataManager
 
+_default_seed = 29
 
 class DataCollector:
 
@@ -194,7 +195,8 @@ class DataCollector:
         if posts is False:
             raise IOError('Failed to load CSV file:' + args.file)
 
-        clean_posts = self.data_manager.clean_data(posts, age_filter=args.no_age)
+        clean_posts = self.data_manager.clean_data(
+            posts, age_filter=args.no_age)
 
         # Extract the file name without the rest of the path
         new_file_name = args.file.split('/')[-1][:-4]
@@ -229,13 +231,18 @@ class DataCollector:
         if posts is False:
             raise IOError('Failed to load CSV file:' + args.file)
 
-        posts_no_ids = posts.drop(columns='id')
-
-        train_valid, test_overfit = self.data_manager.split_data(
-            posts_no_ids, 0.8)
-
+        post_data = posts.drop(columns='id')
+        balanced_posts = self.data_manager.balance_dataset(post_data)
+        
+        train_valid, test_overfit = self.data_manager.split_data(balanced_posts, 0.8)
         train, valid = self.data_manager.split_data(train_valid, 0.8)
         test, overfit = self.data_manager.split_data(test_overfit, 0.8)
+
+        # Display the frequency of each classification for each split dataset
+        print(f"==train frequencies==\n{train['score'].value_counts()}\n")
+        print(f"==valid frequencies==\n{valid['score'].value_counts()}\n")
+        print(f"==test frequencies==\n{test['score'].value_counts()}\n")
+        print(f"==overfit frequencies==\n{overfit['score'].value_counts()}\n")
 
         # Get new file names for each
         new_file_name = args.file.split('/')[-1][:-4]
