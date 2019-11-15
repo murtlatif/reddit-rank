@@ -4,7 +4,8 @@
 ✓ large numbers convert to 'many'
 ✓ currency symbols into words - supports dollars, euros, pounds, and yen
 ✓ r/--- to 'subreddit'
-✓ SO -> signifcant other 
-✓ OP -> overpowered
+✓ SO -> significant other 
+✓ OP -> original poster
+✓ redditors -> people
 ✓ remove [Serious]
 - remove moderator/pinned posts

@@ -187,6 +187,7 @@ class DataCollector:
             usage='collectdata.py clean file [-h, --help]')
         parser.add_argument('file')
         parser.add_argument('--no-age', action='store_false')
+        parser.add_argument('--threshold', type=int, default=100)
 
         # Only take arguments after the subcommand
         args = parser.parse_args(sys.argv[2:])
@@ -196,7 +197,10 @@ class DataCollector:
             raise IOError('Failed to load CSV file:' + args.file)
 
         clean_posts = self.data_manager.clean_data(
-            posts, age_filter=args.no_age)
+            posts, age_filter=args.no_age, threshold=args.threshold)
+
+        print(f'Frequencies of clean posts with threshold={args.threshold}:')
+        print(clean_posts['score'].value_counts())
 
         # Extract the file name without the rest of the path
         new_file_name = args.file.split('/')[-1][:-4]

@@ -62,7 +62,7 @@ class DataManager:
     - (str)flair text -> (bool)serious_flair converter
     """
 
-    def clean_data(self, df, age_filter=True):
+    def clean_data(self, df, age_filter=True, threshold=100):
 
         # Remove duplicates
         clean_df = df.drop_duplicates()
@@ -83,7 +83,7 @@ class DataManager:
 
         # Update score to a 1/0 for high/low score
         clean_df['score'] = clean_df['score'].apply(
-            filters.classify_score, threshold=100)
+            filters.classify_score, threshold=threshold)
 
         return clean_df
 
