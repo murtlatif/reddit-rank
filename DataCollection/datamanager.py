@@ -72,6 +72,10 @@ class DataManager:
             clean_df = clean_df[clean_df['created_utc'].apply(
                 filters.filter_post_age)]
 
+        # Remove posts that are atypical (e.g. breaking news, mod posts)
+        clean_df = clean_df[clean_df['link_flair_text'].apply(
+            filters.filter_special_content)]
+
         # Apply modification filters on the title
         clean_df['title'] = clean_df['title'].apply(filters.update_title)
 

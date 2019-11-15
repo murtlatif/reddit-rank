@@ -9,6 +9,7 @@ from datamanager import DataManager
 
 _default_seed = 29
 
+
 class DataCollector:
 
     """
@@ -80,14 +81,14 @@ class DataCollector:
                 subreddit, sort_by=sort_by)
             self.data_manager.save_to_csv(
                 submissions, file_identifier=subreddit+'_submission_id_')
-            print(f'Successfully collected and saved submissions.')
+            print(f'Successful IDs fetch at {time.ctime()}')
             return submissions
 
         elif fetch_type == 'posts':
             posts = self.praw_manager.get_posts(subreddit, sort_by=sort_by)
             self.data_manager.save_to_csv(
                 posts, file_identifier=subreddit+'_posts_')
-            print(f'Successfully collected and saved submissions.')
+            print(f'Successful posts fetch at {time.ctime()}')
             return posts
 
         else:
@@ -115,6 +116,7 @@ class DataCollector:
         # Only take arguments after the subcommand
         args = parser.parse_args(sys.argv[2:])
 
+        print(f'Starting autocollection at {time.ctime()}')
         schedule.every(2).hours.do(self.__collect, fetch_type=args.fetch_type,
                                    subreddit=args.subreddit, sort_by=args.sort_by)
 
@@ -237,8 +239,9 @@ class DataCollector:
 
         post_data = posts.drop(columns='id')
         balanced_posts = self.data_manager.balance_dataset(post_data)
-        
-        train_valid, test_overfit = self.data_manager.split_data(balanced_posts, 0.8)
+
+        train_valid, test_overfit = self.data_manager.split_data(
+            balanced_posts, 0.8)
         train, valid = self.data_manager.split_data(train_valid, 0.8)
         test, overfit = self.data_manager.split_data(test_overfit, 0.8)
 

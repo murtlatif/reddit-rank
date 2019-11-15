@@ -1,5 +1,8 @@
 ✓ remove duplicates
 ✓ remove posts younger than 2 days
+✓ remove special posts (i.e. mod posts, breaking news)
+✓ convert score to binary classification:
+    0 = score < threshold, 1 = score >= threshold
 ✓ convert numbers to magnitude near that number
 ✓ large numbers convert to 'many'
 ✓ currency symbols into words - supports dollars, euros, pounds, and yen
@@ -7,5 +10,4 @@
 ✓ SO -> significant other 
 ✓ OP -> original poster
 ✓ redditors -> people
-✓ remove [Serious]
-- remove moderator/pinned posts
+✓ remove [Serious] tags from title and convert to boolean attribute

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import re
-import math
+from math import log10
 
 
 """
@@ -63,7 +63,7 @@ def _replace_number(num_match):
     elif num < 0:
         num = -num
 
-    log_num = int(math.log10(num))
+    log_num = int(log10(num))
     if log_num <= 1 or (num_as_str == '420'):
         return num_as_str
     elif log_num <= 9:
@@ -116,6 +116,19 @@ def has_flair(flair_text):
         return True
     else:
         return False
+
+
+"""
+Filter posts with a flair that indicates breaking news or a moderator post.
+Returns true if there is no flair, or a 'Serious Replies Only' flair, and
+returns false otherwise.
+"""
+
+def filter_special_content(flair_text):
+    if flair_text and flair_text != 'Serious Replies Only':
+        return False
+    else:
+        return True
 
 
 """
