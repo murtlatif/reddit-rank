@@ -185,7 +185,7 @@ class DataCollector:
             description='Generates a CSV of the inputted posts after data cleaning is applied',
             usage='collectdata.py clean file [-h, --help]')
         parser.add_argument('file')
-        parser.add_argument('--no-age', action='store_true')
+        parser.add_argument('--no-age', action='store_false')
 
         # Only take arguments after the subcommand
         args = parser.parse_args(sys.argv[2:])

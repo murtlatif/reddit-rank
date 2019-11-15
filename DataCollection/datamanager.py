@@ -78,6 +78,9 @@ class DataManager:
         clean_df = clean_df.rename(columns={'link_flair_text': 'serious_flair'})
         clean_df['serious_flair'] = clean_df['serious_flair'].apply(filters.has_flair)
 
+        # Update score to a 1/0 for high/low score
+        clean_df['score'] = clean_df['score'].apply(filters.classify_score, threshold=100)
+
         return clean_df
 
     """

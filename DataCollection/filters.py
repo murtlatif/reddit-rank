@@ -98,3 +98,12 @@ def has_flair(flair_text):
         return True
     else:
         return False
+
+"""
+Replaces the score values with a 1 for a 'high' score, or 0 for a 'low' score.
+"""
+def classify_score(score, threshold):
+    if score >= threshold:
+        return 1
+    else:
+        return 0
