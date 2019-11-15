@@ -107,14 +107,12 @@ class ModelTrainer:
         batch_serious = batch.serious
         batch_spoiler = batch.spoiler
         batch_nsfw = batch.nsfw
-        batch_num_comments = batch.num_comments
 
         out = self.model(batch_titles,
-                             batch_serious,
-                             batch_spoiler,
-                             batch_nsfw,
-                             batch_num_comments,
-                             batch_title_lengths).squeeze()
+                         batch_serious,
+                         batch_spoiler,
+                         batch_nsfw,
+                         batch_title_lengths).squeeze()
 
         self.test_RSQR = calc_RSQR(out, batch_scores)
         self.test_RMSE = calc_RMSE(out, batch_scores)
@@ -138,14 +136,12 @@ class ModelTrainer:
             batch_serious = batch.serious
             batch_spoiler = batch.spoiler
             batch_nsfw = batch.nsfw
-            batch_num_comments = batch.num_comments
 
             self.optimizer.zero_grad()
             out = self.model(batch_titles,
                              batch_serious,
                              batch_spoiler,
                              batch_nsfw,
-                             batch_num_comments,
                              batch_title_lengths).squeeze()
             loss = self.loss_fnc(out, batch_scores.float())
             loss.backward()
@@ -185,13 +181,11 @@ class ModelTrainer:
             batch_serious = batch.serious
             batch_spoiler = batch.spoiler
             batch_nsfw = batch.nsfw
-            batch_num_comments = batch.num_comments
 
             out = self.model(batch_titles,
                              batch_serious,
                              batch_spoiler,
                              batch_nsfw,
-                             batch_num_comments,
                              batch_title_lengths).squeeze()
             loss = self.loss_fnc(out.squeeze(), batch_scores.float())
 
@@ -207,8 +201,8 @@ class ModelTrainer:
     def __train_on_batches(self):
         batch_index = 1
         train_loss_per_epoch = 0
-        train_RSQR_per_epoch = 0
-        train_RMSE_per_epoch = 0
+        epoch_guesses = torch.tensor([], dtype=torch.float)
+        epoch_answers = torch.tensor([], dtype=torch.float)
         while (batch_index <= self.num_batches):
             batch = next(iter(self.train_iter))
 
@@ -218,7 +212,6 @@ class ModelTrainer:
             batch_serious = batch.serious
             batch_spoiler = batch.spoiler
             batch_nsfw = batch.nsfw
-            batch_num_comments = batch.num_comments
 
             self.optimizer.zero_grad()
 
@@ -226,22 +219,26 @@ class ModelTrainer:
                              batch_serious,
                              batch_spoiler,
                              batch_nsfw,
-                             batch_num_comments,
                              batch_title_lengths).squeeze()
+
+            #print(out)
+
             loss = self.loss_fnc(out.squeeze(), batch_scores.float())
             loss.backward()
             self.optimizer.step()
 
             # Record keeping
             train_loss_per_epoch += loss.detach().numpy()
-            train_RSQR_per_epoch += calc_RSQR(out, batch_scores)
-            train_RMSE_per_epoch += calc_RMSE(out, batch_scores)
+            epoch_guesses = torch.cat([epoch_guesses, out.float()])
+            epoch_answers = torch.cat([epoch_answers, batch_scores.float()])
 
             batch_index += 1
 
+        train_RSQR_per_epoch = calc_RSQR(epoch_guesses, epoch_answers)
+        train_RMSE_per_epoch = calc_RMSE(epoch_guesses, epoch_answers)
         return (train_loss_per_epoch/self.num_batches,
-                train_RSQR_per_epoch/self.num_batches,
-                train_RMSE_per_epoch/self.num_batches)
+                train_RSQR_per_epoch,
+                train_RMSE_per_epoch)
 
     def __zero_tracking_vars(self):
         self.train_RSQRs = []
@@ -286,7 +283,7 @@ class ModelTrainer:
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
                                       ('serious', SERIOUS),
-                                      ('num_comments', NUMCOMMENTS),
+                                      ('num_comments', None),
                                       ('spoiler', SPOILER),
                                       ('nsfw', NSFW),
                                       ('UTC', None),
@@ -297,7 +294,7 @@ class ModelTrainer:
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
                                       ('serious', SERIOUS),
-                                      ('num_comments', NUMCOMMENTS),
+                                      ('num_comments', None),
                                       ('spoiler', SPOILER),
                                       ('nsfw', NSFW),
                                       ('UTC', None),
@@ -308,7 +305,7 @@ class ModelTrainer:
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
                                       ('serious', SERIOUS),
-                                      ('num_comments', NUMCOMMENTS),
+                                      ('num_comments', None),
                                       ('spoiler', SPOILER),
                                       ('nsfw', NSFW),
                                       ('UTC', None),
