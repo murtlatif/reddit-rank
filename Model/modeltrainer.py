@@ -58,6 +58,10 @@ class ModelTrainer:
         self.min_valid_RMSE = (float("inf"), 0)
         self.test_RSQR = 0
         self.test_RMSE = float("inf")
+        self.last_train_guesses = []
+        self.last_train_answers = []
+        self.last_valid_guesses = []
+        self.last_valid_answers = []
 
         # Overfit tracking variables, reset on each call to overfit_loop
         self.overfit_RSQRs = []
@@ -77,8 +81,9 @@ class ModelTrainer:
         start_time = time.time()
 
         for epoch in range(1, self.num_epochs + 1):
-            tr_loss, tr_RSQR, tr_RMSE = self.__train_on_batches()
-            v_loss, v_RSQR, v_RMSE = self.__eval_validation()
+            is_last_batch = (epoch == self.num_epochs)
+            tr_loss, tr_RSQR, tr_RMSE = self.__train_on_batches(is_last_batch)
+            v_loss, v_RSQR, v_RMSE = self.__eval_validation(is_last_batch)
 
             # Update min and maxes
             self.max_train_RSQR = (tr_RSQR, epoch) if (tr_RSQR > self.max_train_RSQR[0]) else self.max_train_RSQR
@@ -168,7 +173,7 @@ class ModelTrainer:
 
     # - Private methods ------------------------------------------------------------------------------------------------
 
-    def __eval_validation(self):
+    def __eval_validation(self, is_last_epoch = False):
         valid_loss_per_epoch = 0
         valid_RSQR_per_epoch = 0
         valid_RMSE_per_epoch = 0
@@ -194,11 +199,15 @@ class ModelTrainer:
             valid_RSQR_per_epoch += calc_RSQR(out, batch_scores)
             valid_RMSE_per_epoch += calc_RMSE(out, batch_scores)
 
+        if is_last_epoch:
+            self.last_valid_answers = batch_scores.detach().numpy()
+            self.last_valid_guesses = out.detach().numpy()
+
         return (valid_loss_per_epoch,
                 valid_RSQR_per_epoch,
                 valid_RMSE_per_epoch)
 
-    def __train_on_batches(self):
+    def __train_on_batches(self, is_last_epoch = False):
         batch_index = 1
         train_loss_per_epoch = 0
         epoch_guesses = torch.tensor([], dtype=torch.float)
@@ -221,8 +230,6 @@ class ModelTrainer:
                              batch_nsfw,
                              batch_title_lengths).squeeze()
 
-            #print(out)
-
             loss = self.loss_fnc(out.squeeze(), batch_scores.float())
             loss.backward()
             self.optimizer.step()
@@ -236,6 +243,11 @@ class ModelTrainer:
 
         train_RSQR_per_epoch = calc_RSQR(epoch_guesses, epoch_answers)
         train_RMSE_per_epoch = calc_RMSE(epoch_guesses, epoch_answers)
+
+        if is_last_epoch:
+            self.last_train_guesses = epoch_guesses.detach().numpy()
+            self.last_train_answers = epoch_answers.detach().numpy()
+
         return (train_loss_per_epoch/self.num_batches,
                 train_RSQR_per_epoch,
                 train_RMSE_per_epoch)
@@ -252,6 +264,10 @@ class ModelTrainer:
         self.min_train_RMSE = (float("inf"), 0)
         self.max_valid_RSQR = (0, 0)
         self.min_valid_RMSE = (float("inf"), 0)
+        self.last_train_guesses = []
+        self.last_train_answers = []
+        self.last_valid_guesses = []
+        self.last_valid_answers = []
 
     def __zero_overfit_vars(self):
         self.overfit_RSQRs = []

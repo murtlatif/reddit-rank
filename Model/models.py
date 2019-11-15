@@ -10,6 +10,7 @@ class Baseline(nn.Module):
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.fc = nn.Linear(emb_dim + num_context_vars, 1)
+        self.lrelu = nn.LeakyReLU()
 
     # context = [serious, spoiler, nsfw, num_comments]
     def forward(self, title, serious, spoiler, nsfw, lengths=None):
@@ -23,6 +24,7 @@ class Baseline(nn.Module):
         average_and_context = torch.cat([average, serious, spoiler, nsfw], 1)
 
         output = self.fc(average_and_context).squeeze(1)
+        output = self.lrelu(output)
 
         return output
 
@@ -42,6 +44,7 @@ class CNN(nn.Module):
                                out_channels=n_filters,
                                kernel_size=(emb_dim, filter_size2))
         self.fc = nn.Linear(emb_dim + 3, 1)
+        self.lrelu = nn.LeakyReLU()
 
 
     def forward(self, title, serious, spoiler, nsfw, lengths):
@@ -77,7 +80,7 @@ class CNN(nn.Module):
                                  spoiler,
                                  nsfw], 1)
 
-        out = self.fc(withcontext)
+        out = self.lrelu(self.fc(withcontext))
 
         return out
 
@@ -89,6 +92,7 @@ class RNN(nn.Module):
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.GRU = nn.GRU(emb_dim, hidden_dim)
         self.fc = nn.Linear(hidden_dim + num_context_vars, 1)
+        self.lrelu = nn.LeakyReLU()
 
     def forward(self, title, serious, spoiler, nsfw, lengths):
         embedded = self.embedding(title)
@@ -102,6 +106,6 @@ class RNN(nn.Module):
 
         withcontext = torch.cat([h, serious, spoiler, nsfw], 1)
 
-        out = self.fc(withcontext)
+        out = self.lrelu(self.fc(withcontext))
 
         return out

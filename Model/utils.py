@@ -106,3 +106,22 @@ def plot_results(num_epochs,
     # Show plots
     plt.show()
 
+def plot_guess_answers(train_guess, train_answer, valid_guess, valid_answer):
+    fig, (train_plot, valid_plot) = plt.subplots(1, 2)
+
+    train_guess = numpy.clip(train_guess, 0 , 500)
+    train_answer = numpy.clip(train_answer, 0, 500)
+    valid_guess = numpy.clip(valid_guess, 0, 500)
+    valid_answer = numpy.clip(valid_answer, 0, 500)
+
+    n_train = len(train_guess)
+    n_valid = len(valid_guess)
+
+    train_plot.scatter(range(0, n_train), train_guess, c='red', marker='.', s=0.5)
+    train_plot.scatter(range(0, n_train), train_answer, c='blue', marker='.', s=0.5)
+
+    valid_plot.scatter(range(0, n_valid), valid_guess, c='red', marker='.', s=0.5)
+    valid_plot.scatter(range(0, n_valid), valid_answer, c='blue', marker='.', s=0.5)
+
+    plt.show()
+
