@@ -62,19 +62,20 @@ class DataManager:
     - (str)flair text -> (bool)serious_flair converter
     """
 
-    def clean_data(self, df):
+    def clean_data(self, df, age_filter=True):
 
         # Remove duplicates
         clean_df = df.drop_duplicates()
 
         # Apply filters.filter_post_age to only keep posts more than 2 days old
-        clean_df = clean_df[clean_df['created_utc'].apply(filters.filter_post_age)]
+        if age_filter:
+            clean_df = clean_df[clean_df['created_utc'].apply(filters.filter_post_age)]
 
         # Apply modification filters on the title
         clean_df['title'] = clean_df['title'].apply(filters.update_title)
 
         # Modify link_flair_text to bools checking existence of a Serious flair
-        clean_df.rename(columns={'link_flair_text': 'serious_flair'}, inplace=True)
+        clean_df = clean_df.rename(columns={'link_flair_text': 'serious_flair'})
         clean_df['serious_flair'] = clean_df['serious_flair'].apply(filters.has_flair)
 
         return clean_df

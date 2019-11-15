@@ -10,6 +10,7 @@
     "fetch_attributes": [
         "title",
         "id",
+        "link_flair_text",
         "num_comments",
         "spoiler",
         "over_18",

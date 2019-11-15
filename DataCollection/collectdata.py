@@ -185,6 +185,7 @@ class DataCollector:
             description='Generates a CSV of the inputted posts after data cleaning is applied',
             usage='collectdata.py clean file [-h, --help]')
         parser.add_argument('file')
+        parser.add_argument('--no-age', action='store_true')
 
         # Only take arguments after the subcommand
         args = parser.parse_args(sys.argv[2:])
@@ -193,7 +194,7 @@ class DataCollector:
         if posts is False:
             raise IOError('Failed to load CSV file:' + args.file)
 
-        clean_posts = self.data_manager.clean_data(posts)
+        clean_posts = self.data_manager.clean_data(posts, age_filter=args.no_age)
 
         # Extract the file name without the rest of the path
         new_file_name = args.file.split('/')[-1][:-4]
