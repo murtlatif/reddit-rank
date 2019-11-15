@@ -7,3 +7,4 @@
 ✓ SO -> signifcant other 
 ✓ OP -> overpowered
 ✓ remove [Serious]
+- remove moderator/pinned posts

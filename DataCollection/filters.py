@@ -32,10 +32,10 @@ def replace_subreddit(title):
 Replaces currency symbols with their respective english words.
 """
 def update_currency_to_word(title):
-    updated_title = re.sub('$', ' dollars ', title)
-    updated_title = re.sub('€', ' euros ', updated_title)
-    updated_title = re.sub('¥', ' yen ', updated_title)
-    updated_title = re.sub('£', ' pounds ', updated_title)
+    updated_title = re.sub(r'\$', r' dollars ', title)
+    updated_title = re.sub(r'€', r' euros ', updated_title)
+    updated_title = re.sub(r'¥', r' yen ', updated_title)
+    updated_title = re.sub(r'£', r' pounds ', updated_title)
     return updated_title
 
 """
