@@ -64,8 +64,8 @@ class DataManager:
 
     def clean_data(self, df, age_filter=True, threshold=100):
 
-        # Remove duplicates
-        clean_df = df.drop_duplicates()
+        # Remove duplicates by id
+        clean_df = df.drop_duplicates(subset='id')
 
         # Apply filters.filter_post_age to only keep posts more than 2 days old
         if age_filter:

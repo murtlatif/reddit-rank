@@ -24,8 +24,8 @@ class DataCollector:
             usage='''collectdata.py <command> [<args>]
 
             The available commands are:
-                autocollect     Periodically fetches and saves reddit posts
-                manualcollect   Immediately fetches and saves reddit posts
+                autocollect     Periodically fetches and saves post data
+                manualcollect   Immediately fetches and saves post data
                 convert         Generates post data from a set of submission_ids
                 clean           Generates clean post data from a post data file
                 split           Generates training files from a post data file
@@ -34,8 +34,8 @@ class DataCollector:
         parser.add_argument(
             'command', help='Subcommand to run', metavar='command',
             choices=['autocollect',
-                     'convert',
                      'manualcollect',
+                     'convert',
                      'clean',
                      'split'
                      ])
@@ -186,10 +186,13 @@ class DataCollector:
         # Create an argument parser to extract subcommand args
         parser = argparse.ArgumentParser(
             description='Generates a CSV of the inputted posts after data cleaning is applied',
-            usage='collectdata.py clean file [-h, --help]')
+            usage='collectdata.py clean file [-h, --help] [--no-age]'
+                  '[--threshold 100] [--ids]')
         parser.add_argument('file')
         parser.add_argument('--no-age', action='store_false')
         parser.add_argument('--threshold', type=int, default=100)
+        parser.add_argument('--ids', help='Remove duplicate ids only',
+                            action='store_true')
 
         # Only take arguments after the subcommand
         args = parser.parse_args(sys.argv[2:])
@@ -198,10 +201,22 @@ class DataCollector:
         if posts is False:
             raise IOError('Failed to load CSV file:' + args.file)
 
+        if args.ids:
+            clean_ids = posts.drop_duplicates(subset='id')
+            print(f'Removed {len(posts) - len(clean_ids)} duplicate IDs.')
+
+            new_file_name = args.file.split('/')[-1][:-4]
+            new_file_name = 'cleanid_' + new_file_name
+            self.data_manager.save_to_csv(
+                clean_ids, timestamp=False, file_identifier=new_file_name)
+            return
+
         clean_posts = self.data_manager.clean_data(
             posts, age_filter=args.no_age, threshold=args.threshold)
 
-        print(f'Frequencies of clean posts with threshold={args.threshold}:')
+        print(f'Filtered out {len(posts) - len(clean_posts)} posts.')
+
+        print(f'Frequencies of clean posts with threshold = {args.threshold}:')
         print(clean_posts['score'].value_counts())
 
         # Extract the file name without the rest of the path

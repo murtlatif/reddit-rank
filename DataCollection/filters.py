@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+from pandas import isna
 from math import log10
 
 
@@ -30,7 +31,7 @@ Replaces every occurrence of 'r/...' with 'subreddit' within a title
 """
 
 def replace_subreddit(title):
-    return re.sub(r'r/\w+', 'subreddit', title)
+    return re.sub(r'\sr/\w+', 'subreddit', title)
 
 
 """
@@ -125,11 +126,10 @@ returns false otherwise.
 """
 
 def filter_special_content(flair_text):
-    if flair_text and flair_text != 'Serious Replies Only':
-        return False
-    else:
+    if (isna(flair_text)) or (flair_text == 'Serious Replies Only'):
         return True
-
+    else:
+        return False
 
 """
 Replaces the score values with a 1 for a 'high' score, or 0 for a 'low' score.
