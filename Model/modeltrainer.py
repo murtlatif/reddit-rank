@@ -42,26 +42,24 @@ class ModelTrainer:
 
         # Initialize optimizer and loss function
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        self.loss_fnc = nn.MSELoss()
+        self.loss_fnc = nn.BCEWithLogitsLoss()
 
         # Training tracking variables, reset on each call to train_validation_loop
-        self.train_RSQRs = []
-        self.train_RMSEs = []
+        self.train_accuracies = []
         self.train_losses = []
-        self.valid_RSQRs = []
-        self.valid_RMSEs = []
+        self.valid_accuracies = []
         self.valid_losses = []
         self.total_time = 0
-        self.max_train_RSQR = (0, 0) # (value, epoch number)
-        self.min_train_RMSE = (float("inf"), 0)
-        self.max_valid_RSQR = (0, 0)
-        self.min_valid_RMSE = (float("inf"), 0)
-        self.test_RSQR = 0
-        self.test_RMSE = float("inf")
+        self.max_train_accuracy = (0, 0) # (value, epoch number)
+        self.max_valid_accuracy = (0, 0)
+        self.test_accuracies = 0
+        self.last_train_guesses = []
+        self.last_train_answers = []
+        self.last_valid_guesses = []
+        self.last_valid_answers = []
 
         # Overfit tracking variables, reset on each call to overfit_loop
-        self.overfit_RSQRs = []
-        self.overfit_RMSEs = []
+        self.overfit_accuracies = []
         self.overfit_losses = []
         self.overfit_total_time = 0
 
@@ -77,24 +75,21 @@ class ModelTrainer:
         start_time = time.time()
 
         for epoch in range(1, self.num_epochs + 1):
-            tr_loss, tr_RSQR, tr_RMSE = self.__train_on_batches()
-            v_loss, v_RSQR, v_RMSE = self.__eval_validation()
+            is_last_batch = (epoch == self.num_epochs)
+            tr_loss, tr_accuracy = self.__train_on_batches(is_last_batch)
+            v_loss, v_accuracy = self.__eval_validation(is_last_batch)
 
             # Update min and maxes
-            self.max_train_RSQR = (tr_RSQR, epoch) if (tr_RSQR > self.max_train_RSQR[0]) else self.max_train_RSQR
-            self.max_valid_RSQR = (v_RSQR, epoch) if (v_RSQR > self.max_valid_RSQR[0]) else self.max_valid_RSQR
-            self.min_train_RMSE = (tr_RMSE, epoch) if (tr_RMSE < self.min_train_RMSE[0]) else self.min_train_RMSE
-            self.min_valid_RMSE = (v_RMSE, epoch) if (v_RMSE < self.min_valid_RMSE[0]) else self.min_valid_RMSE
+            self.max_train_accuracy = (tr_accuracy, epoch) if (tr_accuracy > self.max_train_accuracy[0]) else self.max_train_accuracy
+            self.max_valid_accuracy = (v_accuracy, epoch) if (v_accuracy > self.max_valid_accuracy[0]) else self.max_valid_accuracy
 
             # Record keeping
             self.train_losses.append(tr_loss)
-            self.train_RSQRs.append(max(tr_RSQR, 0))
-            self.train_RMSEs.append(tr_RMSE)
+            self.train_accuracies.append(tr_accuracy)
             self.valid_losses.append(v_loss)
-            self.valid_RSQRs.append(max(v_RSQR, 0))
-            self.valid_RMSEs.append(v_RMSE)
+            self.valid_accuracies.append(v_accuracy)
 
-            print("Epoch " + str(epoch) + " Training RSQR: " + str(tr_RSQR) + " Validation RSQR: " + str(v_RSQR))
+            print("Epoch " + str(epoch) + " Training accuracy: " + str(tr_accuracy) + " Validation accuracy: " + str(v_accuracy))
 
         # Timing
         self.total_time = time.time() - start_time
@@ -107,17 +102,14 @@ class ModelTrainer:
         batch_serious = batch.serious
         batch_spoiler = batch.spoiler
         batch_nsfw = batch.nsfw
-        batch_num_comments = batch.num_comments
 
         out = self.model(batch_titles,
-                             batch_serious,
-                             batch_spoiler,
-                             batch_nsfw,
-                             batch_num_comments,
-                             batch_title_lengths).squeeze()
+                         batch_serious,
+                         batch_spoiler,
+                         batch_nsfw,
+                         batch_title_lengths).squeeze()
 
-        self.test_RSQR = calc_RSQR(out, batch_scores)
-        self.test_RMSE = calc_RMSE(out, batch_scores)
+        self.test_accuracies = calc_accuracy(out, batch_scores)
 
     def overfit_loop(self):
         self.__zero_overfit_vars()
@@ -127,8 +119,7 @@ class ModelTrainer:
 
         for epoch in range(1, self.num_epochs + 1):
             overfit_loss_per_epoch = 0
-            overfit_RSQR_per_epoch = 0
-            overfit_RMSE_per_epoch = 0
+            overfit_accuracy_per_epoch = 0
 
             batch = next(iter(self.overfit_iter))
 
@@ -138,14 +129,12 @@ class ModelTrainer:
             batch_serious = batch.serious
             batch_spoiler = batch.spoiler
             batch_nsfw = batch.nsfw
-            batch_num_comments = batch.num_comments
 
             self.optimizer.zero_grad()
             out = self.model(batch_titles,
                              batch_serious,
                              batch_spoiler,
                              batch_nsfw,
-                             batch_num_comments,
                              batch_title_lengths).squeeze()
             loss = self.loss_fnc(out, batch_scores.float())
             loss.backward()
@@ -153,15 +142,13 @@ class ModelTrainer:
 
             # Record keeping
             overfit_loss_per_epoch += loss.detach().numpy()
-            overfit_RSQR_per_epoch += calc_RSQR(out, batch_scores)
-            overfit_RMSE_per_epoch += calc_RMSE(out, batch_scores)
+            overfit_accuracy_per_epoch += calc_accuracy(out, batch_scores)
 
             # Record keeping
             self.overfit_losses.append(overfit_loss_per_epoch)
-            self.overfit_RSQRs.append(max(overfit_RSQR_per_epoch, 0))
-            self.overfit_RMSEs.append(overfit_RMSE_per_epoch)
+            self.overfit_accuracies.append(overfit_accuracy_per_epoch)
 
-            print("Epoch " + str(epoch) + " Training RSQR: " + str(overfit_RSQR_per_epoch))
+            print("Epoch " + str(epoch) + " Training accuracy: " + str(overfit_accuracy_per_epoch))
 
         # Timing
         self.overfit_total_time = time.time() - start_time
@@ -172,10 +159,10 @@ class ModelTrainer:
 
     # - Private methods ------------------------------------------------------------------------------------------------
 
-    def __eval_validation(self):
+    def __eval_validation(self, is_last_epoch = False):
         valid_loss_per_epoch = 0
-        valid_RSQR_per_epoch = 0
-        valid_RMSE_per_epoch = 0
+        valid_accuracy_per_epoch = 0
+
         with torch.no_grad():
             batch = next(iter(self.valid_iter))
 
@@ -185,30 +172,30 @@ class ModelTrainer:
             batch_serious = batch.serious
             batch_spoiler = batch.spoiler
             batch_nsfw = batch.nsfw
-            batch_num_comments = batch.num_comments
 
             out = self.model(batch_titles,
                              batch_serious,
                              batch_spoiler,
                              batch_nsfw,
-                             batch_num_comments,
                              batch_title_lengths).squeeze()
             loss = self.loss_fnc(out.squeeze(), batch_scores.float())
 
             # Record keeping
             valid_loss_per_epoch += loss.detach().numpy()
-            valid_RSQR_per_epoch += calc_RSQR(out, batch_scores)
-            valid_RMSE_per_epoch += calc_RMSE(out, batch_scores)
+            valid_accuracy_per_epoch += calc_accuracy(out, batch_scores)
+
+        if is_last_epoch:
+            self.last_valid_answers = batch_scores.detach().numpy()
+            self.last_valid_guesses = out.detach().numpy()
 
         return (valid_loss_per_epoch,
-                valid_RSQR_per_epoch,
-                valid_RMSE_per_epoch)
+                valid_accuracy_per_epoch)
 
-    def __train_on_batches(self):
+    def __train_on_batches(self, is_last_epoch = False):
         batch_index = 1
         train_loss_per_epoch = 0
-        train_RSQR_per_epoch = 0
-        train_RMSE_per_epoch = 0
+        epoch_guesses = torch.tensor([], dtype=torch.float)
+        epoch_answers = torch.tensor([], dtype=torch.float)
         while (batch_index <= self.num_batches):
             batch = next(iter(self.train_iter))
 
@@ -218,7 +205,6 @@ class ModelTrainer:
             batch_serious = batch.serious
             batch_spoiler = batch.spoiler
             batch_nsfw = batch.nsfw
-            batch_num_comments = batch.num_comments
 
             self.optimizer.zero_grad()
 
@@ -226,48 +212,52 @@ class ModelTrainer:
                              batch_serious,
                              batch_spoiler,
                              batch_nsfw,
-                             batch_num_comments,
                              batch_title_lengths).squeeze()
+
             loss = self.loss_fnc(out.squeeze(), batch_scores.float())
             loss.backward()
             self.optimizer.step()
 
             # Record keeping
             train_loss_per_epoch += loss.detach().numpy()
-            train_RSQR_per_epoch += calc_RSQR(out, batch_scores)
-            train_RMSE_per_epoch += calc_RMSE(out, batch_scores)
+            epoch_guesses = torch.cat([epoch_guesses, out.float()])
+            epoch_answers = torch.cat([epoch_answers, batch_scores.float()])
 
             batch_index += 1
 
+        train_accuracy_per_epoch = calc_accuracy(epoch_guesses, epoch_answers)
+
+        if is_last_epoch:
+            self.last_train_guesses = epoch_guesses.detach().numpy()
+            self.last_train_answers = epoch_answers.detach().numpy()
+
         return (train_loss_per_epoch/self.num_batches,
-                train_RSQR_per_epoch/self.num_batches,
-                train_RMSE_per_epoch/self.num_batches)
+                train_accuracy_per_epoch)
 
     def __zero_tracking_vars(self):
-        self.train_RSQRs = []
-        self.train_RMSEs = []
+        self.train_accuracies = []
         self.train_losses = []
-        self.valid_RSQRs = []
-        self.valid_RMSEs = []
+        self.valid_accuracies = []
         self.valid_losses = []
         self.total_time = 0
-        self.max_train_RSQR = (0, 0)
-        self.min_train_RMSE = (float("inf"), 0)
-        self.max_valid_RSQR = (0, 0)
-        self.min_valid_RMSE = (float("inf"), 0)
+        self.max_train_accuracy = (0, 0)  # (value, epoch number)
+        self.max_valid_accuracy = (0, 0)
+        self.test_accuracies = 0
+        self.last_train_guesses = []
+        self.last_train_answers = []
+        self.last_valid_guesses = []
+        self.last_valid_answers = []
 
     def __zero_overfit_vars(self):
-        self.overfit_RSQRs = []
-        self.overfit_RMSEs = []
+        self.overfit_accuracies = []
         self.overfit_losses = []
         self.overfit_total_time = 0
 
     def __load_title_data(self, path ='data/',
                           train_file = 'train.csv',
-                          valid_file = 'validation.csv',
+                          valid_file = 'valid.csv',
                           test_file = 'test.csv',
                           overfit_file = 'overfit.csv',
-                          all_file = 'all.csv',
                           use_csv = True):
 
         # Strings and bools
@@ -286,7 +276,7 @@ class ModelTrainer:
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
                                       ('serious', SERIOUS),
-                                      ('num_comments', NUMCOMMENTS),
+                                      ('num_comments', None),
                                       ('spoiler', SPOILER),
                                       ('nsfw', NSFW),
                                       ('UTC', None),
@@ -297,18 +287,7 @@ class ModelTrainer:
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
                                       ('serious', SERIOUS),
-                                      ('num_comments', NUMCOMMENTS),
-                                      ('spoiler', SPOILER),
-                                      ('nsfw', NSFW),
-                                      ('UTC', None),
-                                      ('score', LABELS)])
-
-        self.all_data = data.TabularDataset(
-            path=path + all_file,
-            format='csv' if (use_csv) else 'tsv',
-            skip_header=True, fields=[('title', TITLES),
-                                      ('serious', SERIOUS),
-                                      ('num_comments', NUMCOMMENTS),
+                                      ('num_comments', None),
                                       ('spoiler', SPOILER),
                                       ('nsfw', NSFW),
                                       ('UTC', None),
@@ -348,7 +327,7 @@ class ModelTrainer:
             shuffle=True)
 
     def __create_vocab_obj(self):
-        self.TITLES.build_vocab(self.all_data)
+        self.TITLES.build_vocab(self.train_data, self.valid_data, self.overfit_data, self.test_data)
         self.SERIOUS.build_vocab(self.bool_data)
         self.NSFW.build_vocab(self.bool_data)
         self.SPOILER.build_vocab(self.bool_data)

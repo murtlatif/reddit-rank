@@ -17,11 +17,13 @@ def main(args):
         # Overfit model
         m.overfit_loop()
 
+        # Statistics
+        print("Total time: {0:.2f}s".format(m.overfit_total_time))
+
         # Plot
         plot_overfit_results(m.num_epochs,
-                             m.overfit_RSQRs,
-                             m.overfit_RMSEs,
-                             m.overfit_losses)
+                             m.overfit_losses,
+                             m.overfit_accuracies)
     else:
         # Train model
         m.train_validation_loop()
@@ -29,10 +31,17 @@ def main(args):
         # Evaluate test set with model
         m.eval_test()
 
+        # Statistics
+        print("Total time: {0:.2f}s".format(m.total_time))
+        print("Maximum training accuracy: " + str(m.max_train_accuracy[0]) + " at epoch: " + str(m.max_train_accuracy[1]))
+        print("Maximum validation accuracy: " + str(m.max_valid_accuracy[0]) + " at epoch: " + str(m.max_valid_accuracy[1]))
+        print("Test accuracy:", m.test_accuracies)
+
         # Plot
         plot_results(m.num_epochs,
-                     m.train_RSQRs, m.train_RMSEs, m.train_losses,
-                     m.valid_RSQRs, m.valid_RMSEs, m.valid_losses)
+                     m.train_losses, m.train_accuracies,
+                     m.valid_losses, m.valid_accuracies)
+        # plot_guess_answers(m.last_train_guesses, m.last_train_answers, m.last_valid_guesses, m.last_valid_answers)
 
     # Saving
     if (save_model):
