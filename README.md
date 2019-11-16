@@ -8,6 +8,7 @@
 * [Project Tasks](#tasks "Jump to Project Tasks")
     * [Project Proposal Report](#proposal_report "Jump to Project Proposal")
     * [Project Proposal Presentation](#proposal_presentation)
+    * [Project Progress Report](#progress_report "Jump to Progress Report")
 
 
 <br />
@@ -39,3 +40,13 @@ The Project Proposal Presentation is the visual aid to a presentation that quick
 * Architecture for the baselines and actual model
 * Risks of the project
 * Planned objectives before Progress Report
+
+<a name='progress_report'></a>
+### Project Progress Report
+[View Project Progress Report](ProgressReport/RedditRank-ProgressReport.pdf "View Project Progress Report")
+
+The Project Progress Report is to ensure that we are on track to compelte the project as planned. It shows that we have made good progress on:
+* Collecting almost all the data
+* Producing a baseline model
+* Producing at least one result, including one qualitative or quantitative comparison
+* Reflecting upon the feedback given at proposal time
