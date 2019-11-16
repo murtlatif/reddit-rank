@@ -7,6 +7,8 @@ import spacy
 import time
 import argparse
 import math
+import sklearn
+from sklearn.metrics import confusion_matrix
 
 from models import *
 from utils import *
@@ -57,6 +59,8 @@ class ModelTrainer:
         self.last_train_answers = []
         self.last_valid_guesses = []
         self.last_valid_answers = []
+        self.last_test_guesses = []
+        self.last_test_answers = []
 
         # Overfit tracking variables, reset on each call to overfit_loop
         self.overfit_accuracies = []
@@ -110,6 +114,8 @@ class ModelTrainer:
                          batch_title_lengths).squeeze()
 
         self.test_accuracies = calc_accuracy(out, batch_scores)
+        self.last_test_answers = batch_scores.detach().numpy()
+        self.last_test_guesses = numpy.rint(torch.sigmoid(out.detach()).numpy())
 
     def overfit_loop(self):
         self.__zero_overfit_vars()
@@ -152,6 +158,10 @@ class ModelTrainer:
 
         # Timing
         self.overfit_total_time = time.time() - start_time
+
+    def print_confusion_matrix(self):
+        cm= confusion_matrix(self.last_test_answers, self.last_test_guesses)
+        print(cm)
 
     def save_model(self, save_path):
         print("Model saved as:", save_path)

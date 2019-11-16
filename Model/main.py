@@ -37,6 +37,9 @@ def main(args):
         print("Maximum validation accuracy: " + str(m.max_valid_accuracy[0]) + " at epoch: " + str(m.max_valid_accuracy[1]))
         print("Test accuracy:", m.test_accuracies)
 
+        # Confusion Matrix
+        m.print_confusion_matrix()
+
         # Plot
         plot_results(m.num_epochs,
                      m.train_losses, m.train_accuracies,
