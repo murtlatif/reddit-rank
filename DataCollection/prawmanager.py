@@ -50,13 +50,15 @@ class PRAWManager:
     The result is a ListingGenerator object of the requested posts.
     """
 
-    def get_from_subreddit(self, subreddit, num_posts, sorting='hot'):
+    def get_from_subreddit(self, subreddit, num_posts, sorting='hot', timefilter='all'):
 
         subred = self.reddit.subreddit(subreddit)
 
-        if sorting == 'hot' or sorting == 'top' or sorting == 'new':
+        if sorting == 'hot' or sorting == 'new':
             # Applies subred.hot(), subred.top() or subred.new()
             return getattr(subred, sorting)(limit=num_posts)
+        elif sorting == 'top':
+            return getattr(subred, sorting)(limit=num_posts, time_filter=timefilter)
         else:
             raise ValueError(
                 "Invalid sorting type provided. Try 'hot', 'top' or 'new'.")
@@ -65,10 +67,10 @@ class PRAWManager:
     Obtains the ids for the requested selection of posts
     """
 
-    def get_submission_ids(self, subreddit, num_posts=1000, sort_by='hot'):
+    def get_submission_ids(self, subreddit, num_posts=1000, sort_by='hot', time_filter=None):
 
         submission_ids = self.get_from_subreddit(
-            subreddit, num_posts, sorting=sort_by)
+            subreddit, num_posts, sorting=sort_by, timefilter=time_filter)
         submission_ids = self.submissions_to_df(submission_ids, ['id'])
         return submission_ids
 
@@ -76,9 +78,9 @@ class PRAWManager:
     Obtains a set of post information for the requested selection of posts
     """
 
-    def get_posts(self, subreddit, num_posts=1000, sort_by='hot'):
+    def get_posts(self, subreddit, num_posts=1000, sort_by='hot', time_filter=None):
 
-        posts = self.get_from_subreddit(subreddit, num_posts, sort_by)
+        posts = self.get_from_subreddit(subreddit, num_posts, sort_by, time_filter)
         posts = self.submissions_to_df(posts, self.collecting_attributes)
         return posts
 

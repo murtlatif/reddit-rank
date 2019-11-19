@@ -70,7 +70,7 @@ class DataCollector:
     :return: DataFrame of the collected data
     """
 
-    def __collect(self, fetch_type, subreddit, sort_by):
+    def __collect(self, fetch_type, subreddit, sort_by, time_filter=None):
 
         print(
             f'Fetching posts... type:{fetch_type}, subreddit:{subreddit}, '
@@ -78,14 +78,15 @@ class DataCollector:
 
         if fetch_type == 'ids':
             submissions = self.praw_manager.get_submission_ids(
-                subreddit, sort_by=sort_by)
+                subreddit, sort_by=sort_by, time_filter=time_filter)
             self.data_manager.save_to_csv(
                 submissions, file_identifier=subreddit+'_submission_id_')
             print(f'Successful IDs fetch at {time.ctime()}')
             return submissions
 
         elif fetch_type == 'posts':
-            posts = self.praw_manager.get_posts(subreddit, sort_by=sort_by)
+            posts = self.praw_manager.get_posts(
+                subreddit, sort_by=sort_by, time_filter=time_filter)
             self.data_manager.save_to_csv(
                 posts, file_identifier=subreddit+'_posts_')
             print(f'Successful posts fetch at {time.ctime()}')
@@ -112,13 +113,17 @@ class DataCollector:
         parser.add_argument('--subreddit', '-r', default='AskReddit')
         parser.add_argument('--sort-by', '-s', default='new',
                             choices=['new', 'top', 'hot'])
+        parser.add_argument('--time-filter', default='all',
+                            choices=['all', 'day', 'hour', 'month', 'week', 'year'])
+        parser.add_argument('--every', default=2, type=int)
 
         # Only take arguments after the subcommand
         args = parser.parse_args(sys.argv[2:])
 
         print(f'Starting autocollection at {time.ctime()}')
-        schedule.every(2).hours.do(self.__collect, fetch_type=args.fetch_type,
-                                   subreddit=args.subreddit, sort_by=args.sort_by)
+        schedule.every(args.every).hours.do(self.__collect, fetch_type=args.fetch_type,
+                                   subreddit=args.subreddit, sort_by=args.sort_by,
+                                   time_filter=args.time_filter)
 
         while True:
             try:
@@ -143,11 +148,13 @@ class DataCollector:
         parser.add_argument('--subreddit', '-r', default='AskReddit')
         parser.add_argument('--sort-by', '-s', default='new',
                             choices=['new', 'top', 'hot'])
+        parser.add_argument('--time-filter', default='all',
+                            choices=['all', 'day', 'hour', 'month', 'week', 'year'])
 
         # Only take arguments after the subcommand
         args = parser.parse_args(sys.argv[2:])
 
-        return self.__collect(fetch_type=args.fetch_type, subreddit=args.subreddit, sort_by=args.sort_by)
+        return self.__collect(fetch_type=args.fetch_type, subreddit=args.subreddit, sort_by=args.sort_by, time_filter=args.time_filter)
 
     """
     Generates a table of submission data from a set of submission IDs.
