@@ -72,10 +72,10 @@ if __name__ == '__main__':
 
 # FULL TERMINAL COMMAND:
 """
-python main.py --model "rnn" --batch-size 64 --lr 0.1 --epochs 100 --emb-dim 100 --rnn-hidden-dim 100 --num-kernels 50 --overfit 0 --save-model 0 --save-path "placeholder.pt"
+python main.py --model "baseline" --batch-size 64 --lr 0.1 --epochs 100 --emb-dim 100 --rnn-hidden-dim 100 --num-kernels 50 --overfit 0 --save-model 0 --save-path "placeholder.pt"
 """
 
 # NO SAVE NO OVERFIT
 """
-python main.py --model "rnn" --batch-size 64 --lr 0.1 --epochs 100 --emb-dim 100 --rnn-hidden-dim 100 --num-kernels 50 --data-path "data/"
+python main.py --model "baseline" --batch-size 64 --lr 0.1 --epochs 100 --emb-dim 100 --rnn-hidden-dim 100 --num-kernels 50 --data-path "data/"
 """

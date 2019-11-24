@@ -6,22 +6,20 @@ class Baseline(nn.Module):
 
     def __init__(self, emb_dim, vocab):
         super(Baseline, self).__init__()
-        num_context_vars = 3
+        num_context_vars = 2
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.fc1 = nn.Linear(emb_dim + num_context_vars, 64)
         self.fc2 = nn.Linear(64, 1)
 
-    # context = [serious, spoiler, nsfw, num_comments]
-    def forward(self, title, serious, spoiler, nsfw, lengths=None):
+    def forward(self, title, serious, nsfw, lengths=None):
         embedded = self.embedding(title)
 
         average = embedded.mean(0)
         serious = serious.unsqueeze(1).float()
-        spoiler = spoiler.unsqueeze(1).float()
         nsfw = nsfw.unsqueeze(1).float()
 
-        withcontext = torch.cat([average, serious, spoiler, nsfw], 1)
+        withcontext = torch.cat([average, serious, nsfw], 1)
 
         output = torch.sigmoid(self.fc1(withcontext).squeeze(1))
         output = self.fc2(output)
@@ -29,80 +27,94 @@ class Baseline(nn.Module):
         return output
 
 class CNN(nn.Module):
-    def __init__(self, emb_dim, vocab, n_filters, filter_sizes = (2, 4)):
+    def __init__(self, emb_dim, vocab, n_filters):
         super(CNN, self).__init__()
-        num_context_vars = 3
+        num_context_vars = 2
 
-        filter_size1 = filter_sizes[0]
-        filter_size2 = filter_sizes[1]
+        self.n_filters = n_filters
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.conv1 = nn.Conv2d(in_channels=1,
                                out_channels=n_filters,
-                               kernel_size=(emb_dim, filter_size1))
+                               kernel_size=(emb_dim, 1))
         self.conv2 = nn.Conv2d(in_channels=1,
                                out_channels=n_filters,
-                               kernel_size=(emb_dim, filter_size2))
-        self.fc = nn.Linear(emb_dim + 3, 1)
+                               kernel_size=(emb_dim, 2))
+        self.conv3 = nn.Conv2d(in_channels=1,
+                               out_channels=n_filters,
+                               kernel_size=(emb_dim, 3))
+        self.conv4 = nn.Conv2d(in_channels=1,
+                               out_channels=n_filters,
+                               kernel_size=(emb_dim, 4))
+        self.bn_conv = nn.BatchNorm2d(n_filters * 4)
+        self.dr_conv = nn.Dropout2d(0.1)
+        self.fc1 = nn.Linear(n_filters * 4  + num_context_vars, 300)
+        self.bn_fc1 = nn.BatchNorm1d(300)
+        self.dr_fc1 = nn.Dropout2d(0.5)
+        self.fc2 = nn.Linear(300, 100)
+        self.bn_fc2 = nn.BatchNorm1d(100)
+        self.dr_fc2 = nn.Dropout2d(0.5)
+        self.fc3 = nn.Linear(100, 1)
+        self.LeakyRelu = nn.LeakyReLU()
 
-
-    def forward(self, title, serious, spoiler, nsfw, lengths):
+    def forward(self, title, serious, nsfw,  lengths):
 
         batch_size = title.shape[1]
-        max_length = max(lengths.detach().numpy())
+        max_length = torch.max(lengths)
 
-        serious = serious.unsqueeze(1).float()
-        spoiler = spoiler.unsqueeze(1).float()
-        nsfw = nsfw.unsqueeze(1).float()
-
-        pool1 = nn.MaxPool2d((1, max_length-1), 1)  # k = 2
-        pool2 = nn.MaxPool2d((1, max_length-3), 1)  # k = 4
+        pool1 = nn.MaxPool2d((1, max_length-0), 1)  # k = 1
+        pool2 = nn.MaxPool2d((1, max_length-1), 1)  # k = 2
+        pool3 = nn.MaxPool2d((1, max_length-2), 1)  # k = 3
+        pool4 = nn.MaxPool2d((1, max_length-3), 1)  # k = 4
 
         embedded = self.embedding(title)
 
-        # transform embedded tensor to match input to conv layers
+        # Transform embedded tensor to match input to conv layers
         embedded = torch.unsqueeze(embedded, 1)
         embedded = torch.transpose(embedded, 0, 2)
         embedded = torch.transpose(embedded, 2, 3)
 
-        conv1out = torch.relu(self.conv1(embedded))
-        conv2out = torch.relu(self.conv2(embedded))
+        # Ordering is CONV -> POOL -> RELU -> CONCATENATE -> BATCHNORM -> DROPOUT
+        conv1out = self.LeakyRelu(pool1(self.conv1(embedded)))
+        conv2out = self.LeakyRelu(pool2(self.conv2(embedded)))
+        conv3out = self.LeakyRelu(pool3(self.conv3(embedded)))
+        conv4out = self.LeakyRelu(pool4(self.conv4(embedded)))
+        concatenated = torch.cat([conv1out, conv2out, conv3out, conv4out], dim=1)
+        concatenated = self.dr_conv(self.bn_conv(concatenated))
 
-        conv1out_pooled = pool1(conv1out)
-        conv2out_pooled = pool2(conv2out)
+        # Reshape output
+        concatenated = torch.reshape(concatenated, (batch_size, 4 * self.n_filters))
 
-        concatenated = torch.cat([conv1out_pooled, conv2out_pooled], dim=1)
-        concatenated = torch.reshape(concatenated, (batch_size, 100))
+        # Add context flags (booleans)
+        serious = torch.transpose(serious, 0, 1).float()
+        nsfw = torch.transpose(nsfw, 0, 1).float()
+        withcontext = torch.cat([concatenated, serious, nsfw], 1)
 
-        withcontext = torch.cat([concatenated,
-                                 serious,
-                                 spoiler,
-                                 nsfw], 1)
-
-        out = self.fc(withcontext)
+        # MLP
+        out = self.dr_fc1(self.LeakyRelu(self.bn_fc1(self.fc1(withcontext))))
+        out = self.dr_fc2(self.LeakyRelu(self.bn_fc2(self.fc2(out))))
+        out = self.fc3(out)
 
         return out
 
 class RNN(nn.Module):
     def __init__(self, emb_dim, vocab, hidden_dim):
         super(RNN, self).__init__()
-        num_context_vars = 3
+        num_context_vars = 2
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.GRU = nn.GRU(emb_dim, hidden_dim)
         self.fc = nn.Linear(hidden_dim + num_context_vars, 1)
 
-    def forward(self, title, serious, spoiler, nsfw, lengths):
+    def forward(self, title, serious, nsfw, lengths):
         embedded = self.embedding(title)
-        embedded = nn.utils.rnn.pack_padded_sequence(embedded, lengths)
         gru_out, h = self.GRU(embedded)
         h = h.squeeze()
 
         serious = serious.unsqueeze(1).float()
-        spoiler = spoiler.unsqueeze(1).float()
         nsfw = nsfw.unsqueeze(1).float()
 
-        withcontext = torch.cat([h, serious, spoiler, nsfw], 1)
+        withcontext = torch.cat([h, serious, nsfw], 1)
 
         out = self.fc(withcontext)
 
