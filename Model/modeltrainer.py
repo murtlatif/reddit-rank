@@ -7,7 +7,6 @@ import spacy
 import time
 import argparse
 import math
-import sklearn
 from sklearn.metrics import confusion_matrix
 
 from models import *
@@ -15,6 +14,8 @@ from utils import *
 
 class ModelTrainer:
     def __init__(self, args):
+        torch.manual_seed(0)
+
         # Load in hyperparameters
         self.batch_size = args.batch_size
         self.learning_rate = args.lr
@@ -25,6 +26,9 @@ class ModelTrainer:
         self.num_kernels = args.num_kernels
         self.save_path = args.save_path
         self.data_path = args.data_path
+
+        # Getting device to run on
+        self.device = self.__get_default_device()
 
         # Load data, create iterators and vocab object
         self.__load_title_data(path=self.data_path)
@@ -41,6 +45,9 @@ class ModelTrainer:
         elif self.model_type == 'rnn':
             print("RNN")
             self.model = RNN(self.emb_dim, self.vocab, self.rnn_hidden_dim)
+
+        # Move model to device selected
+        self.model.to(self.device, non_blocking=True)
 
         # Initialize optimizer and loss function
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -101,21 +108,27 @@ class ModelTrainer:
     def eval_test(self):
         batch = next(iter(self.test_iter))
 
-        batch_titles, batch_title_lengths = batch.title
-        batch_scores = batch.score
-        batch_serious = batch.serious
-        batch_spoiler = batch.spoiler
-        batch_nsfw = batch.nsfw
+        # Free GPU memory
+        torch.cuda.empty_cache()
 
-        out = self.model(batch_titles,
-                         batch_serious,
-                         batch_spoiler,
-                         batch_nsfw,
-                         batch_title_lengths).squeeze()
+        self.model.eval()
+        with torch.no_grad():
+
+            # Get batch data, send to GPU
+            batch_titles = self.__to_GPU(batch.title[0])
+            batch_title_lengths = self.__to_GPU(batch.title[1])
+            batch_serious = self.__to_GPU(batch.serious)
+            batch_nsfw = self.__to_GPU(batch.nsfw)
+            batch_scores = self.__to_GPU(batch.score.float())
+
+            out = self.model(batch_titles,
+                             batch_serious,
+                             batch_nsfw,
+                             batch_title_lengths).squeeze()
 
         self.test_accuracies = calc_accuracy(out, batch_scores)
-        self.last_test_answers = batch_scores.detach().numpy()
-        self.last_test_guesses = numpy.rint(torch.sigmoid(out.detach()).numpy())
+        self.last_test_answers = batch_scores.cpu().detach().numpy()
+        self.last_test_guesses = numpy.rint(torch.sigmoid(out.cpu().detach()).numpy())
 
     def overfit_loop(self):
         self.__zero_overfit_vars()
@@ -123,44 +136,44 @@ class ModelTrainer:
         # Timing
         start_time = time.time()
 
+        self.model.train()
         for epoch in range(1, self.num_epochs + 1):
             overfit_loss_per_epoch = 0
             overfit_accuracy_per_epoch = 0
 
             batch = next(iter(self.overfit_iter))
 
-            # Get batch data
-            batch_titles, batch_title_lengths = batch.title
-            batch_scores = batch.score
-            batch_serious = batch.serious
-            batch_spoiler = batch.spoiler
-            batch_nsfw = batch.nsfw
+            # Get batch data, send to GPU
+            batch_titles = self.__to_GPU(batch.title[0])
+            batch_title_lengths = self.__to_GPU(batch.title[1])
+            batch_serious = self.__to_GPU(batch.serious)
+            batch_nsfw = self.__to_GPU(batch.nsfw)
+            batch_scores = self.__to_GPU(batch.score)
 
             self.optimizer.zero_grad()
+
             out = self.model(batch_titles,
                              batch_serious,
-                             batch_spoiler,
                              batch_nsfw,
                              batch_title_lengths).squeeze()
-            loss = self.loss_fnc(out, batch_scores.float())
+
+            loss = self.loss_fnc(out, batch_scores)
             loss.backward()
             self.optimizer.step()
 
             # Record keeping
-            overfit_loss_per_epoch += loss.detach().numpy()
+            overfit_loss_per_epoch += loss.cpu().detach().numpy()
             overfit_accuracy_per_epoch += calc_accuracy(out, batch_scores)
 
             # Record keeping
             self.overfit_losses.append(overfit_loss_per_epoch)
             self.overfit_accuracies.append(overfit_accuracy_per_epoch)
 
-            print("Epoch " + str(epoch) + " Training accuracy: " + str(overfit_accuracy_per_epoch))
-
         # Timing
         self.overfit_total_time = time.time() - start_time
 
     def print_confusion_matrix(self):
-        cm= confusion_matrix(self.last_test_answers, self.last_test_guesses)
+        cm = confusion_matrix(self.last_test_answers, self.last_test_guesses)
         print(cm)
 
     def save_model(self, save_path):
@@ -173,30 +186,31 @@ class ModelTrainer:
         valid_loss_per_epoch = 0
         valid_accuracy_per_epoch = 0
 
+        self.model.eval()
         with torch.no_grad():
             batch = next(iter(self.valid_iter))
 
-            # Get batch data
-            batch_titles, batch_title_lengths = batch.title
-            batch_scores = batch.score
-            batch_serious = batch.serious
-            batch_spoiler = batch.spoiler
-            batch_nsfw = batch.nsfw
+            # Get batch data, send to GPU
+            batch_titles = self.__to_GPU(batch.title[0])
+            batch_title_lengths = self.__to_GPU(batch.title[1])
+            batch_serious = self.__to_GPU(batch.serious)
+            batch_nsfw = self.__to_GPU(batch.nsfw)
+            batch_scores = self.__to_GPU(batch.score.float())
 
             out = self.model(batch_titles,
                              batch_serious,
-                             batch_spoiler,
                              batch_nsfw,
                              batch_title_lengths).squeeze()
-            loss = self.loss_fnc(out.squeeze(), batch_scores.float())
+
+            loss = self.loss_fnc(out, batch_scores)
 
             # Record keeping
-            valid_loss_per_epoch += loss.detach().numpy()
+            valid_loss_per_epoch += loss.cpu().detach().numpy()
             valid_accuracy_per_epoch += calc_accuracy(out, batch_scores)
 
         if is_last_epoch:
-            self.last_valid_answers = batch_scores.detach().numpy()
-            self.last_valid_guesses = out.detach().numpy()
+            self.last_valid_answers = batch_scores.cpu().detach().numpy()
+            self.last_valid_guesses = out.cpu().detach().numpy()
 
         return (valid_loss_per_epoch,
                 valid_accuracy_per_epoch)
@@ -204,32 +218,33 @@ class ModelTrainer:
     def __train_on_batches(self, is_last_epoch = False):
         batch_index = 1
         train_loss_per_epoch = 0
-        epoch_guesses = torch.tensor([], dtype=torch.float)
-        epoch_answers = torch.tensor([], dtype=torch.float)
+        epoch_guesses = torch.cuda.FloatTensor(0)
+        epoch_answers = torch.cuda.FloatTensor(0)
+
+        self.model.train()
         while (batch_index <= self.num_batches):
             batch = next(iter(self.train_iter))
 
-            # Get batch data
-            batch_titles, batch_title_lengths = batch.title
-            batch_scores = batch.score
-            batch_serious = batch.serious
-            batch_spoiler = batch.spoiler
-            batch_nsfw = batch.nsfw
+            # Get batch data, send to GPU
+            batch_titles = self.__to_GPU(batch.title[0])
+            batch_title_lengths = self.__to_GPU(batch.title[1])
+            batch_serious = self.__to_GPU(batch.serious)
+            batch_nsfw = self.__to_GPU(batch.nsfw)
+            batch_scores = self.__to_GPU(batch.score.float())
 
             self.optimizer.zero_grad()
 
             out = self.model(batch_titles,
                              batch_serious,
-                             batch_spoiler,
                              batch_nsfw,
                              batch_title_lengths).squeeze()
 
-            loss = self.loss_fnc(out.squeeze(), batch_scores.float())
+            loss = self.loss_fnc(out, batch_scores)
             loss.backward()
             self.optimizer.step()
 
             # Record keeping
-            train_loss_per_epoch += loss.detach().numpy()
+            train_loss_per_epoch += loss.cpu().detach().numpy()
             epoch_guesses = torch.cat([epoch_guesses, out.float()])
             epoch_answers = torch.cat([epoch_answers, batch_scores.float()])
 
@@ -238,8 +253,8 @@ class ModelTrainer:
         train_accuracy_per_epoch = calc_accuracy(epoch_guesses, epoch_answers)
 
         if is_last_epoch:
-            self.last_train_guesses = epoch_guesses.detach().numpy()
-            self.last_train_answers = epoch_answers.detach().numpy()
+            self.last_train_guesses = epoch_guesses.cpu().detach().numpy()
+            self.last_train_answers = epoch_answers.cpu().detach().numpy()
 
         return (train_loss_per_epoch/self.num_batches,
                 train_accuracy_per_epoch)
@@ -270,47 +285,41 @@ class ModelTrainer:
                           overfit_file = 'overfit.csv',
                           use_csv = True):
 
-        # Strings and bools
+        # String
         TITLES = data.Field(sequential=True, lower=True, tokenize='spacy', include_lengths=True)
-        SERIOUS = data.Field(sequential=False, lower=True, tokenize='spacy')
-        SPOILER = data.Field(sequential=False, lower=True, tokenize='spacy')
-        NSFW = data.Field(sequential=False, lower=True, tokenize='spacy')
+        NSFW = data.Field(sequential=True, lower=True, tokenize='spacy')
+        SERIOUS = data.Field(sequential=True, lower=True, tokenize='spacy')
 
-        # Numerical
-        NUMCOMMENTS = data.Field(sequential=False, use_vocab=False)
-        LABELS = data.Field(sequential=False, use_vocab=False) # Score of a post
+        # Numerical (0 or 1)
+        LABELS = data.Field(sequential=False, use_vocab=False)
 
         self.train_data, self.valid_data, self.test_data = data.TabularDataset.splits(
             path=path,
             train=train_file, validation=valid_file, test=test_file,
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
-                                      ('serious', SERIOUS),
-                                      ('num_comments', None),
-                                      ('spoiler', SPOILER),
                                       ('nsfw', NSFW),
-                                      ('UTC', None),
+                                      ('utc', None),
+                                      ('serious', SERIOUS),
                                       ('score', LABELS)])
 
         self.overfit_data = data.TabularDataset(
             path=path + overfit_file,
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
-                                      ('serious', SERIOUS),
-                                      ('num_comments', None),
-                                      ('spoiler', SPOILER),
                                       ('nsfw', NSFW),
-                                      ('UTC', None),
+                                      ('utc', None),
+                                      ('serious', SERIOUS),
                                       ('score', LABELS)])
 
-        # In order to parse bool fields
-        self.bool_data = data.TabularDataset(path="bool.csv", format='csv',
-                                             skip_header=True, fields=[('title', TITLES)])
+        self.bool_data = data.TabularDataset(
+            path = './bool.csv',
+            format='csv',
+            skip_header=True, fields=[('title', TITLES)])
 
         self.TITLES = TITLES # Saved in order to build vocab later
-        self.SERIOUS = SERIOUS
         self.NSFW = NSFW
-        self.SPOILER = SPOILER
+        self.SERIOUS = SERIOUS
 
         self.n_train = len(self.train_data)
         self.n_valid = len(self.valid_data)
@@ -338,10 +347,20 @@ class ModelTrainer:
 
     def __create_vocab_obj(self):
         self.TITLES.build_vocab(self.train_data, self.valid_data, self.overfit_data, self.test_data)
-        self.SERIOUS.build_vocab(self.bool_data)
         self.NSFW.build_vocab(self.bool_data)
-        self.SPOILER.build_vocab(self.bool_data)
+        self.SERIOUS.build_vocab(self.bool_data)
 
         self.TITLES.vocab.load_vectors(torchtext.vocab.GloVe(name='6B', dim=100))
 
         self.vocab = self.TITLES.vocab
+
+    def __get_default_device(self):
+        if torch.cuda.is_available():
+            return torch.device('cuda')
+        else:
+            return torch.device('cpu')
+
+    def __to_GPU(self, data):
+        if (isinstance(data, (list,tuple))):
+            return [self.__to_GPU(x, self.device) for x in data]
+        return data.to(self.device, non_blocking=True)

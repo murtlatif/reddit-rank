@@ -6,15 +6,15 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 def calc_accuracy(guesses, answers):
-    guesses = guesses.detach()
-    answers = answers.detach().numpy()
+    guesses = guesses.cpu().detach()
+    answers = answers.cpu().detach().numpy()
     n = len(answers)
 
     # Apply sigmoid to output
     sigmoid = nn.Sigmoid()
     guesses = sigmoid(guesses)
     guesses = guesses.numpy()
-    guesses = numpy.round(guesses, 0)
+    guesses = numpy.rint(guesses)
 
     # Count number of equivalent elements
     res = numpy.sum(guesses == answers)
