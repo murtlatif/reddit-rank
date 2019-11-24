@@ -1,0 +1,71 @@
+.btn {
+	font-family: IBMPlexSans, Arial, sans-serif;
+	font-size: 12px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: 700;
+	letter-spacing: 0.5px;
+	line-height: 24px;
+	text-decoration: none solid rgb(135, 138, 140);
+	text-align: center;
+	text-indent: 0px;
+	text-transform: uppercase;
+	white-space: nowrap;
+    word-spacing: 0px;   
+}
+
+#inputinfo {
+	border: 1px solid black;
+}
+
+.btn:hover {
+    border: 1px solid rgba(155, 160, 163, 0.76);
+}
+
+.btn:active {
+    border: 1px solid rgba(155, 160, 163, 0.76);
+}
+
+label.btn {
+    display: inline-block;
+
+    /* Font & Text */
+	font-weight: 800;
+
+
+	/* Color & Background */
+	background-attachment: scroll;
+	background-color: rgba(0, 0, 0, 0);
+	background-image: none;
+	background-position: 0% 0%;
+	background-repeat: repeat;
+	color: rgb(135, 138, 140);
+
+	/* Box */
+	height: 28px;
+	width: 91px;
+	border: 1px solid rgba(155, 160, 163, 0.76);
+	margin: 0px;
+	padding: 0px;
+	max-height: none;
+	min-height: 0px;
+	max-width: none;
+	min-width: 0px;
+
+	/* List */
+	list-style-image: none;
+	list-style-type: disc;
+	list-style-position: outside;
+
+	/* Table */
+	border-collapse: separate;
+	border-spacing: 0px 0px;
+	caption-side: top;
+	empty-cells: show;
+	table-layout: auto;
+
+	/* Miscellaneous */
+	overflow: visible;
+	cursor: pointer;
+    visibility: visible;
+}

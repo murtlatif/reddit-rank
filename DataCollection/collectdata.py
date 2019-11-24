@@ -313,10 +313,10 @@ class DataCollector:
         print(f"==overfit frequencies==\n{overfit['score'].value_counts()}\n")
 
         # Onehot-encode the score for each of the split files
-        train = self.data_manager.onehot_score(train)
-        valid = self.data_manager.onehot_score(valid)
-        test = self.data_manager.onehot_score(test)
-        overfit = self.data_manager.onehot_score(overfit)
+        # train = self.data_manager.onehot_score(train)
+        # valid = self.data_manager.onehot_score(valid)
+        # test = self.data_manager.onehot_score(test)
+        # overfit = self.data_manager.onehot_score(overfit)
 
         # Get new file names for each
         new_file_name = args.file.split('/')[-1][:-4]

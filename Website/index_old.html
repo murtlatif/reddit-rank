@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <!-- Custom CSS -->
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+
+    <title>RedditRank Sampler</title>
+</head>
+
+<body>
+    <div class="container mt-3">
+
+        <div class="row">
+            <div class="col">
+                <div class="jumbotron">
+                    <h1 class="display-2">Reddit Rank</h1>
+                    <p class="lead">
+                        This is a simple classifier that determines the score of a post that is made to <a href="https://www.reddit.com/r/AskReddit">r/AskReddit</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <h3 display-6>Create a post</h3>
+                <hr>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <form name="redditpost" action="./cgi-bin/test.py" method="GET">
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <textarea class="form-control" id="title" rows="2" placeholder="Title" name="title" maxlength=300></textarea>
+                            <small class="form-text text-muted">Maximum of 300 characters.</small>
+                        </div>
+                    </div>
+
+                    <div class="form-row justify-content-between">
+                        <div class="form-group col-4">
+                            <div class="btn-group-toggle" data-toggle="buttons">
+                                <label data-toggle="tooltip" title="Mark as a spoiler" data-placement="top" class="btn btn-outline-light">
+                                    <input type="checkbox" name="spoiler" autocomplete="off"> + SPOILER
+                                </label>
+                                <label data-toggle="tooltip" title="Mark as Not Safe For Work" data-placement="top" class="btn btn-outline-light">
+                                    <input type="checkbox" name="nsfw" autocomplete="off"> + NSFW
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group col-4 text-right">
+                            <button type="submit" class="btn btn-dark">POST</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+            
+    </div>
+    
+
+
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
