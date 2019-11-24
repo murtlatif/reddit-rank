@@ -51,7 +51,7 @@ class ModelTrainer:
 
         # Initialize optimizer and loss function
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        self.loss_fnc = nn.BCEWithLogitsLoss()
+        self.loss_fnc = nn.CrossEntropyLoss()
 
         # Training tracking variables, reset on each call to train_validation_loop
         self.train_accuracies = []
@@ -113,17 +113,14 @@ class ModelTrainer:
 
         self.model.eval()
         with torch.no_grad():
-
             # Get batch data, send to GPU
             batch_titles = self.__to_GPU(batch.title[0])
             batch_title_lengths = self.__to_GPU(batch.title[1])
-            batch_serious = self.__to_GPU(batch.serious)
-            batch_nsfw = self.__to_GPU(batch.nsfw)
-            batch_scores = self.__to_GPU(batch.score.float())
+            batch_context = self.__get_context(batch)
+            batch_scores = self.__to_GPU(batch.score)
 
             out = self.model(batch_titles,
-                             batch_serious,
-                             batch_nsfw,
+                             batch_context,
                              batch_title_lengths).squeeze()
 
         self.test_accuracies = calc_accuracy(out, batch_scores)
@@ -146,15 +143,13 @@ class ModelTrainer:
             # Get batch data, send to GPU
             batch_titles = self.__to_GPU(batch.title[0])
             batch_title_lengths = self.__to_GPU(batch.title[1])
-            batch_serious = self.__to_GPU(batch.serious)
-            batch_nsfw = self.__to_GPU(batch.nsfw)
+            batch_context = self.__get_context(batch)
             batch_scores = self.__to_GPU(batch.score)
 
             self.optimizer.zero_grad()
 
             out = self.model(batch_titles,
-                             batch_serious,
-                             batch_nsfw,
+                             batch_context,
                              batch_title_lengths).squeeze()
 
             loss = self.loss_fnc(out, batch_scores)
@@ -188,18 +183,18 @@ class ModelTrainer:
 
         self.model.eval()
         with torch.no_grad():
+            torch.cuda.empty_cache()
+
             batch = next(iter(self.valid_iter))
 
             # Get batch data, send to GPU
             batch_titles = self.__to_GPU(batch.title[0])
             batch_title_lengths = self.__to_GPU(batch.title[1])
-            batch_serious = self.__to_GPU(batch.serious)
-            batch_nsfw = self.__to_GPU(batch.nsfw)
-            batch_scores = self.__to_GPU(batch.score.float())
+            batch_context = self.__get_context(batch)
+            batch_scores = self.__to_GPU(batch.score)
 
             out = self.model(batch_titles,
-                             batch_serious,
-                             batch_nsfw,
+                             batch_context,
                              batch_title_lengths).squeeze()
 
             loss = self.loss_fnc(out, batch_scores)
@@ -223,20 +218,21 @@ class ModelTrainer:
 
         self.model.train()
         while (batch_index <= self.num_batches):
+            # Free GPU memory for next batch
+            torch.cuda.empty_cache()
+
             batch = next(iter(self.train_iter))
 
             # Get batch data, send to GPU
             batch_titles = self.__to_GPU(batch.title[0])
             batch_title_lengths = self.__to_GPU(batch.title[1])
-            batch_serious = self.__to_GPU(batch.serious)
-            batch_nsfw = self.__to_GPU(batch.nsfw)
-            batch_scores = self.__to_GPU(batch.score.float())
+            batch_context = self.__get_context(batch)
+            batch_scores = self.__to_GPU(batch.score)
 
             self.optimizer.zero_grad()
 
             out = self.model(batch_titles,
-                             batch_serious,
-                             batch_nsfw,
+                             batch_context,
                              batch_title_lengths).squeeze()
 
             loss = self.loss_fnc(out, batch_scores)
@@ -245,10 +241,12 @@ class ModelTrainer:
 
             # Record keeping
             train_loss_per_epoch += loss.cpu().detach().numpy()
-            epoch_guesses = torch.cat([epoch_guesses, out.float()])
-            epoch_answers = torch.cat([epoch_answers, batch_scores.float()])
+
+            epoch_guesses = torch.cat([epoch_guesses, out.float()], dim=0)
+            epoch_answers = torch.cat([epoch_answers, batch_scores.float()], dim=0)
 
             batch_index += 1
+            del(loss) # Free up GPU space
 
         train_accuracy_per_epoch = calc_accuracy(epoch_guesses, epoch_answers)
 
@@ -278,6 +276,44 @@ class ModelTrainer:
         self.overfit_losses = []
         self.overfit_total_time = 0
 
+    def __get_context(self, batch):
+        batch_serious = batch.serious.unsqueeze(1)
+        batch_nsfw = batch.nsfw.unsqueeze(1)
+        batch_hours = torch.cat([
+            batch.hour0.unsqueeze(1),
+            batch.hour1.unsqueeze(1),
+            batch.hour2.unsqueeze(1),
+            batch.hour3.unsqueeze(1),
+            batch.hour4.unsqueeze(1),
+            batch.hour5.unsqueeze(1),
+            batch.hour6.unsqueeze(1),
+            batch.hour7.unsqueeze(1),
+            batch.hour8.unsqueeze(1),
+            batch.hour9.unsqueeze(1),
+            batch.hour10.unsqueeze(1),
+            batch.hour11.unsqueeze(1),
+            batch.hour12.unsqueeze(1),
+            batch.hour13.unsqueeze(1),
+            batch.hour14.unsqueeze(1),
+            batch.hour15.unsqueeze(1),
+            batch.hour16.unsqueeze(1),
+            batch.hour17.unsqueeze(1),
+            batch.hour18.unsqueeze(1),
+            batch.hour19.unsqueeze(1),
+            batch.hour20.unsqueeze(1),
+            batch.hour21.unsqueeze(1),
+            batch.hour22.unsqueeze(1),
+            batch.hour23.unsqueeze(1)], dim=1)
+        batch_days = torch.cat([
+            batch.mon.unsqueeze(1),
+            batch.tue.unsqueeze(1),
+            batch.wed.unsqueeze(1),
+            batch.thu.unsqueeze(1),
+            batch.fri.unsqueeze(1),
+            batch.sat.unsqueeze(1),
+            batch.sun.unsqueeze(1)], dim=1)
+        return self.__to_GPU(torch.cat([batch_serious, batch_nsfw, batch_hours, batch_days], dim=1).float())
+
     def __load_title_data(self, path ='data/',
                           train_file = 'train.csv',
                           valid_file = 'valid.csv',
@@ -287,10 +323,43 @@ class ModelTrainer:
 
         # String
         TITLES = data.Field(sequential=True, lower=True, tokenize='spacy', include_lengths=True)
-        NSFW = data.Field(sequential=True, lower=True, tokenize='spacy')
-        SERIOUS = data.Field(sequential=True, lower=True, tokenize='spacy')
 
         # Numerical (0 or 1)
+        NSFW = data.Field(sequential=False, use_vocab=False)
+        SERIOUS = data.Field(sequential=False, use_vocab=False)
+        HOUR0 = data.Field(sequential=False, use_vocab=False)
+        HOUR1 = data.Field(sequential=False, use_vocab=False)
+        HOUR2 = data.Field(sequential=False, use_vocab=False)
+        HOUR3 = data.Field(sequential=False, use_vocab=False)
+        HOUR4 = data.Field(sequential=False, use_vocab=False)
+        HOUR5 = data.Field(sequential=False, use_vocab=False)
+        HOUR6 = data.Field(sequential=False, use_vocab=False)
+        HOUR7 = data.Field(sequential=False, use_vocab=False)
+        HOUR8 = data.Field(sequential=False, use_vocab=False)
+        HOUR9 = data.Field(sequential=False, use_vocab=False)
+        HOUR10 = data.Field(sequential=False, use_vocab=False)
+        HOUR11 = data.Field(sequential=False, use_vocab=False)
+        HOUR12 = data.Field(sequential=False, use_vocab=False)
+        HOUR13 = data.Field(sequential=False, use_vocab=False)
+        HOUR14 = data.Field(sequential=False, use_vocab=False)
+        HOUR15 = data.Field(sequential=False, use_vocab=False)
+        HOUR16 = data.Field(sequential=False, use_vocab=False)
+        HOUR17 = data.Field(sequential=False, use_vocab=False)
+        HOUR18 = data.Field(sequential=False, use_vocab=False)
+        HOUR19 = data.Field(sequential=False, use_vocab=False)
+        HOUR20 = data.Field(sequential=False, use_vocab=False)
+        HOUR21 = data.Field(sequential=False, use_vocab=False)
+        HOUR22 = data.Field(sequential=False, use_vocab=False)
+        HOUR23 = data.Field(sequential=False, use_vocab=False)
+        MON = data.Field(sequential=False, use_vocab=False)
+        TUE = data.Field(sequential=False, use_vocab=False)
+        WED = data.Field(sequential=False, use_vocab=False)
+        THU = data.Field(sequential=False, use_vocab=False)
+        FRI = data.Field(sequential=False, use_vocab=False)
+        SAT = data.Field(sequential=False, use_vocab=False)
+        SUN = data.Field(sequential=False, use_vocab=False)
+
+        # Score
         LABELS = data.Field(sequential=False, use_vocab=False)
 
         self.train_data, self.valid_data, self.test_data = data.TabularDataset.splits(
@@ -299,27 +368,80 @@ class ModelTrainer:
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
                                       ('nsfw', NSFW),
-                                      ('utc', None),
                                       ('serious', SERIOUS),
-                                      ('score', LABELS)])
+                                      ('score', LABELS),
+                                      ('hour0', HOUR0),
+                                      ('hour1', HOUR1),
+                                      ('hour2', HOUR2),
+                                      ('hour3', HOUR3),
+                                      ('hour4', HOUR4),
+                                      ('hour5', HOUR5),
+                                      ('hour6', HOUR6),
+                                      ('hour7', HOUR7),
+                                      ('hour8', HOUR8),
+                                      ('hour9', HOUR9),
+                                      ('hour10', HOUR10),
+                                      ('hour11', HOUR11),
+                                      ('hour12', HOUR12),
+                                      ('hour13', HOUR13),
+                                      ('hour14', HOUR14),
+                                      ('hour15', HOUR15),
+                                      ('hour16', HOUR16),
+                                      ('hour17', HOUR17),
+                                      ('hour18', HOUR18),
+                                      ('hour19', HOUR19),
+                                      ('hour20', HOUR20),
+                                      ('hour21', HOUR21),
+                                      ('hour22', HOUR22),
+                                      ('hour23', HOUR23),
+                                      ('mon', MON),
+                                      ('tue', TUE),
+                                      ('wed', WED),
+                                      ('thu', THU),
+                                      ('fri', FRI),
+                                      ('sat', SAT),
+                                      ('sun', SUN)])
 
         self.overfit_data = data.TabularDataset(
             path=path + overfit_file,
             format='csv' if (use_csv) else 'tsv',
             skip_header=True, fields=[('title', TITLES),
                                       ('nsfw', NSFW),
-                                      ('utc', None),
                                       ('serious', SERIOUS),
-                                      ('score', LABELS)])
-
-        self.bool_data = data.TabularDataset(
-            path = './bool.csv',
-            format='csv',
-            skip_header=True, fields=[('title', TITLES)])
+                                      ('score', LABELS),
+                                      ('hour0', HOUR0),
+                                      ('hour1', HOUR1),
+                                      ('hour2', HOUR2),
+                                      ('hour3', HOUR3),
+                                      ('hour4', HOUR4),
+                                      ('hour5', HOUR5),
+                                      ('hour6', HOUR6),
+                                      ('hour7', HOUR7),
+                                      ('hour8', HOUR8),
+                                      ('hour9', HOUR9),
+                                      ('hour10', HOUR10),
+                                      ('hour11', HOUR11),
+                                      ('hour12', HOUR12),
+                                      ('hour13', HOUR13),
+                                      ('hour14', HOUR14),
+                                      ('hour15', HOUR15),
+                                      ('hour16', HOUR16),
+                                      ('hour17', HOUR17),
+                                      ('hour18', HOUR18),
+                                      ('hour19', HOUR19),
+                                      ('hour20', HOUR20),
+                                      ('hour21', HOUR21),
+                                      ('hour22', HOUR22),
+                                      ('hour23', HOUR23),
+                                      ('mon', MON),
+                                      ('tue', TUE),
+                                      ('wed', WED),
+                                      ('thu', THU),
+                                      ('fri', FRI),
+                                      ('sat', SAT),
+                                      ('sun', SUN)])
 
         self.TITLES = TITLES # Saved in order to build vocab later
-        self.NSFW = NSFW
-        self.SERIOUS = SERIOUS
 
         self.n_train = len(self.train_data)
         self.n_valid = len(self.valid_data)
@@ -347,11 +469,7 @@ class ModelTrainer:
 
     def __create_vocab_obj(self):
         self.TITLES.build_vocab(self.train_data, self.valid_data, self.overfit_data, self.test_data)
-        self.NSFW.build_vocab(self.bool_data)
-        self.SERIOUS.build_vocab(self.bool_data)
-
         self.TITLES.vocab.load_vectors(torchtext.vocab.GloVe(name='6B', dim=100))
-
         self.vocab = self.TITLES.vocab
 
     def __get_default_device(self):

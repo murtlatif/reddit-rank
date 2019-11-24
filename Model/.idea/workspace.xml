@@ -22,22 +22,21 @@
     <setting file="file://$PROJECT_DIR$/../a5/main.py" root0="SKIP_INSPECTION" />
     <setting file="file://$PROJECT_DIR$/utils.py" root0="SKIP_INSPECTION" />
     <setting file="file://$PROJECT_DIR$/modeltrainer.py" root0="SKIP_INSPECTION" />
-    <setting file="file://$PROJECT_DIR$/scrapper.py" root0="SKIP_INSPECTION" />
   </component>
   <component name="ProjectId" id="1TXeesN5MVN18fWAYu7ga9AWzGO" />
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
   <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank\data\small" />
-      <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank\data" />
-      <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank" />
-      <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank\bool" />
-    </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank" />
       <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank\data" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank" />
+      <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank\data\small" />
+      <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank\data" />
+      <recent name="C:\Users\Andrew\PycharmProjects\ece324\RedditRank\bool" />
     </key>
   </component>
   <component name="RunDashboard">
