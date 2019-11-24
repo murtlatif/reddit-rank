@@ -1,6 +1,6 @@
 __pycache__
 .vscode
 config.json
-*/Data/*.csv
+*.csv
 .vector_cache
 *.zip
