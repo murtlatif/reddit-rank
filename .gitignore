@@ -3,3 +3,4 @@ __pycache__
 config.json
 */Data/*.csv
 .vector_cache
+*.zip

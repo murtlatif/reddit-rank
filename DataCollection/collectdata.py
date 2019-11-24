@@ -6,6 +6,7 @@ import time
 from config import get_config
 from prawmanager import PRAWManager
 from datamanager import DataManager
+from scrapetool import scrape_posts
 
 _default_seed = 29
 
@@ -37,7 +38,8 @@ class DataCollector:
                      'manualcollect',
                      'convert',
                      'clean',
-                     'split'
+                     'split',
+                     'scrape'
                      ])
         args = parser.parse_args(sys.argv[1:2])
 
@@ -157,6 +159,44 @@ class DataCollector:
         return self.__collect(fetch_type=args.fetch_type, subreddit=args.subreddit, sort_by=args.sort_by, time_filter=args.time_filter)
 
     """
+    Scrapes submission data based on the classes and fetch_attributes specified
+    in config.json. The 'samples' argument specifies the maximum number of
+    submissions to obtain for each class.
+    The data is saved as a .csv in the directory specified in config.json.
+    """
+    
+    def scrape(self):
+        # Create an argument parser to extract subcommand args
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--samples', '-n', default=10000, type=int)
+        parser.add_argument('--subreddit', '-r',
+                            default='AskReddit', choices=['AskReddit'])
+        
+        # Only take arguments after the subcommand
+        args = parser.parse_args(sys.argv[2:])
+        
+        score_queries = get_config('classes')
+
+        dfs = []
+        try:
+            for class_num in range(len(score_queries)):
+                class_posts = scrape_posts(args.samples, score_queries[class_num], class_num, args.subreddit)
+
+                dfs.append(class_posts)
+                # class_file_name = f'{class_num}_{args.samples}s_{args.subreddit}'
+
+                # self.data_manager.save_to_csv(class_posts, timestamp=False, file_identifier=class_file_name)
+
+        except AssertionError as e:
+            print(f'Request was unsuccessful: {e}')
+            return False
+
+        merged_dfs = self.data_manager.merge(dfs)
+        merged_file_name = f'{args.samples}s_{args.subreddit}'
+
+        self.data_manager.save_to_csv(merged_dfs, timestamp=False, file_identifier=merged_file_name)
+
+    """
     Generates a table of submission data from a set of submission IDs.
     The submission IDs are passed in through a CSV file.
     The attributes obtained for each submission is the set of attributes from declared in config.json
@@ -218,12 +258,11 @@ class DataCollector:
                 clean_ids, timestamp=False, file_identifier=new_file_name)
             return
 
-        clean_posts = self.data_manager.clean_data(
-            posts, age_filter=args.no_age, threshold=args.threshold)
+        clean_posts = self.data_manager.clean_data(posts)
 
         print(f'Filtered out {len(posts) - len(clean_posts)} posts.')
 
-        print(f'Frequencies of clean posts with threshold = {args.threshold}:')
+        print(f'Frequencies of clean post scores:')
         print(clean_posts['score'].value_counts())
 
         # Extract the file name without the rest of the path
@@ -260,10 +299,10 @@ class DataCollector:
             raise IOError('Failed to load CSV file:' + args.file)
 
         post_data = posts.drop(columns='id')
-        balanced_posts = self.data_manager.balance_dataset(post_data)
+        # balanced_posts = self.data_manager.balance_dataset(post_data)
 
         train_valid, test_overfit = self.data_manager.split_data(
-            balanced_posts, 0.8)
+            post_data, 0.8)
         train, valid = self.data_manager.split_data(train_valid, 0.8)
         test, overfit = self.data_manager.split_data(test_overfit, 0.8)
 
@@ -272,6 +311,12 @@ class DataCollector:
         print(f"==valid frequencies==\n{valid['score'].value_counts()}\n")
         print(f"==test frequencies==\n{test['score'].value_counts()}\n")
         print(f"==overfit frequencies==\n{overfit['score'].value_counts()}\n")
+
+        # Onehot-encode the score for each of the split files
+        train = self.data_manager.onehot_score(train)
+        valid = self.data_manager.onehot_score(valid)
+        test = self.data_manager.onehot_score(test)
+        overfit = self.data_manager.onehot_score(overfit)
 
         # Get new file names for each
         new_file_name = args.file.split('/')[-1][:-4]

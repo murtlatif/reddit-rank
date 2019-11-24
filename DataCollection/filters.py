@@ -1,17 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import re
 from pandas import isna
 from math import log10
-
-
-"""
-Filters post creation time.
-
-Returns True if the post is greater than 2 days old at the time of applying the filter. Returns False otherwise.
-"""
-
-def filter_post_age(created_utc):
-    return created_utc <= (datetime.now() - timedelta(days=2)).timestamp()
+from config import get_config
 
 
 """
@@ -114,10 +105,15 @@ whether or not the link contains a 'Serious Replies Only' flair.
 
 def has_flair(flair_text):
     if flair_text == 'Serious Replies Only':
-        return True
+        return 1
     else:
-        return False
+        return 0
 
+"""
+Converts the True/False value of over_18 to 1/0
+"""
+def nsfw_bool_to_num(over_18):
+    return 1 if over_18 else 0
 
 """
 Filter posts with a flair that indicates breaking news or a moderator post.
@@ -132,11 +128,20 @@ def filter_special_content(flair_text):
         return False
 
 """
-Replaces the score values with a 1 for a 'high' score, or 0 for a 'low' score.
+Applies a filter that modifies the created_utc column into a tuple of 3 elements: 'created_utc', 'hour_of_day' and 'day_of_week'
 """
 
-def classify_score(score, threshold):
-    if score >= threshold:
-        return 1
-    else:
-        return 0
+def convert_date_time(created_utc):
+    datetime_post = datetime.fromtimestamp(created_utc)
+    return (created_utc, datetime_post.hour, datetime_post.weekday())
+
+"""
+Returns a list representing a onehot encoded vector for the score
+"""
+
+def convert_onehot(score):
+    score_classes = get_config('classes')
+    onehot_scores = [1 if class_num == score else 0 for class_num in range(len(score_classes))]
+    
+    # print(onehot_scores)
+    return onehot_scores

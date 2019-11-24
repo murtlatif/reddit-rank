@@ -57,20 +57,14 @@ class DataManager:
 
     Filters applied:
     - Duplication removal
-    - Post age filter
     - Title processing update filter
     - (str)flair text -> (bool)serious_flair converter
     """
 
-    def clean_data(self, df, age_filter=True, threshold=100):
+    def clean_data(self, df):
 
         # Remove duplicates by id
         clean_df = df.drop_duplicates(subset='id')
-
-        # Apply filters.filter_post_age to only keep posts more than 2 days old
-        if age_filter:
-            clean_df = clean_df[clean_df['created_utc'].apply(
-                filters.filter_post_age)]
 
         # Remove posts that are atypical (e.g. breaking news, mod posts)
         clean_df = clean_df[clean_df['link_flair_text'].apply(
@@ -85,9 +79,27 @@ class DataManager:
         clean_df['serious_flair'] = clean_df['serious_flair'].apply(
             filters.has_flair)
 
-        # Update score to a 1/0 for high/low score
-        clean_df['score'] = clean_df['score'].apply(
-            filters.classify_score, threshold=threshold)
+        clean_df['over_18'] = clean_df['over_18'].apply(filters.nsfw_bool_to_num)
+
+        # Replace created_utc with weekday and hour of the day
+        weekday_hour_list = clean_df['created_utc'].apply(filters.convert_date_time).values.tolist()
+
+        weekday_hour_df = pd.DataFrame(weekday_hour_list, columns=['created_utc', 'hour', 'weekday'])
+
+        weekday_hour_df = weekday_hour_df.drop_duplicates()
+        clean_df = pd.merge(clean_df, weekday_hour_df)
+
+        # Drop created_utc and reorder columns
+        clean_df = clean_df.drop(columns=['created_utc'])
+
+        clean_df = clean_df[['id','title','over_18','serious_flair','hour','weekday', 'score']]
+
+        # One hot encode hour and weekday columns (leave score until after split)
+        # clean_df = pd.concat([clean_df, pd.get_dummies(clean_df['score'], prefix='score')], axis=1)
+        clean_df = pd.concat([clean_df, pd.get_dummies(clean_df['hour'], prefix='hour')], axis=1)
+        clean_df = pd.concat([clean_df, pd.get_dummies(clean_df['weekday'], prefix='weekday')], axis=1)
+
+        clean_df = clean_df.drop(columns=['hour', 'weekday'])
 
         return clean_df
 
@@ -110,12 +122,13 @@ class DataManager:
         return labels
 
     """
+    DEPRECATED
     Splits a binary classified dataset into two equally sized datasets for each
     classification, and remerges them to produce a dataset with an equal number
     of samples for each class.
     """
 
-    def balance_dataset(self, df):
+    def balance_dataset_deprecated(self, df):
         df_low = df[df['score'] == 0]
         df_high = df[df['score'] == 1]
 
@@ -124,6 +137,15 @@ class DataManager:
         df_high_samples = df_high.sample(n=sample_size, random_state=self.seed)
 
         return pd.concat([df_low_samples, df_high_samples])
+
+    """
+    Merges a list of DataFrames.
+    """
+    def merge(self, dfs):
+        if len(dfs) == 0:
+            return None
+
+        return pd.concat(dfs)
 
     """
     Splits data into two sets. The split percentage size is determined by 
@@ -139,3 +161,16 @@ class DataManager:
             df, train_size=left_percentage, random_state=self.seed, shuffle=True, stratify=strat)
 
         return df_left, df_right
+
+    """
+    Onehot encode the score column into multiple columns depending on the number of classes defined in config.json
+    """
+    def onehot_score(self, df):
+        score_classes = get_config('classes')
+        score_columns = [f'score_{class_num}' for class_num in range(len(score_classes))]
+
+        score_onehot_list = df['score'].apply(filters.convert_onehot).values.tolist()
+
+        score_onehot_df = pd.DataFrame(score_onehot_list, columns=score_columns)
+        merged_onehot_df = pd.concat([df.reset_index(drop=True), score_onehot_df.reset_index(drop=True)], axis=1)
+        return merged_onehot_df.drop(columns=['score'])
