@@ -41,7 +41,6 @@ def main(args):
         plot_results(m.num_epochs,
                      m.train_losses, m.train_accuracies,
                      m.valid_losses, m.valid_accuracies)
-        # plot_guess_answers(m.last_train_guesses, m.last_train_answers, m.last_valid_guesses, m.last_valid_answers)
 
     # Saving
     if (save_model):
@@ -74,5 +73,5 @@ python main.py --model "baseline" --batch-size 64 --lr 0.1 --epochs 100 --emb-di
 
 # NO SAVE NO OVERFIT
 """
-python main.py --model "baseline" --batch-size 64 --lr 0.1 --epochs 100 --emb-dim 100 --rnn-hidden-dim 100 --num-kernels 50 --data-path "data/"
+python main.py --model "cnn" --batch-size 5000 --lr 0.001 --epochs 100 --emb-dim 100 --rnn-hidden-dim 100 --num-kernels 100 --data-path ""
 """

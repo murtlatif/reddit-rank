@@ -62,12 +62,6 @@ class ModelTrainer:
         self.max_train_accuracy = (0, 0) # (value, epoch number)
         self.max_valid_accuracy = (0, 0)
         self.test_accuracies = 0
-        self.last_train_guesses = []
-        self.last_train_answers = []
-        self.last_valid_guesses = []
-        self.last_valid_answers = []
-        self.last_test_guesses = []
-        self.last_test_answers = []
 
         # Overfit tracking variables, reset on each call to overfit_loop
         self.overfit_accuracies = []
@@ -76,6 +70,8 @@ class ModelTrainer:
 
         # Calculate number of batches
         self.num_batches = math.ceil(self.n_train / self.batch_size)
+        self.num_batches_valid = math.ceil(self.n_valid / self.batch_size)
+        self.num_batches_test = math.ceil(self.n_valid / self.batch_size)
 
     # - Public Methods -------------------------------------------------------------------------------------------------
 
@@ -86,9 +82,8 @@ class ModelTrainer:
         start_time = time.time()
 
         for epoch in range(1, self.num_epochs + 1):
-            is_last_batch = (epoch == self.num_epochs)
-            tr_loss, tr_accuracy = self.__train_on_batches(is_last_batch)
-            v_loss, v_accuracy = self.__eval_validation(is_last_batch)
+            tr_loss, tr_accuracy = self.__train_on_batches()
+            v_loss, v_accuracy = self.__eval_validation()
 
             # Update min and maxes
             self.max_train_accuracy = (tr_accuracy, epoch) if (tr_accuracy > self.max_train_accuracy[0]) else self.max_train_accuracy
@@ -106,26 +101,32 @@ class ModelTrainer:
         self.total_time = time.time() - start_time
 
     def eval_test(self):
-        batch = next(iter(self.test_iter))
-
-        # Free GPU memory
-        torch.cuda.empty_cache()
+        batch_index = 1
+        num_correct = 0
 
         self.model.eval()
         with torch.no_grad():
-            # Get batch data, send to GPU
-            batch_titles = self.__to_GPU(batch.title[0])
-            batch_title_lengths = self.__to_GPU(batch.title[1])
-            batch_context = self.__get_context(batch)
-            batch_scores = self.__to_GPU(batch.score)
+            while(batch_index < self.num_batches_test):
+                # Free GPU memory
+                torch.cuda.empty_cache()
 
-            out = self.model(batch_titles,
-                             batch_context,
-                             batch_title_lengths).squeeze()
+                batch = next(iter(self.test_iter))
 
-        self.test_accuracies = calc_accuracy(out, batch_scores)
-        self.last_test_answers = batch_scores.cpu().detach().numpy()
-        self.last_test_guesses = numpy.rint(torch.sigmoid(out.cpu().detach()).numpy())
+                # Get batch data, send to GPU
+                batch_titles = self.__to_GPU(batch.title[0])
+                batch_title_lengths = self.__to_GPU(batch.title[1])
+                batch_context = self.__get_context(batch)
+                batch_scores = self.__to_GPU(batch.score)
+
+                out = self.model(batch_titles,
+                                 batch_context,
+                                 batch_title_lengths).squeeze()
+
+                num_correct += calc_num_correct(out, batch_scores)
+
+                batch_index += 1
+
+        self.test_accuracies = num_correct / self.n_test
 
     def overfit_loop(self):
         self.__zero_overfit_vars()
@@ -167,54 +168,53 @@ class ModelTrainer:
         # Timing
         self.overfit_total_time = time.time() - start_time
 
-    def print_confusion_matrix(self):
-        cm = confusion_matrix(self.last_test_answers, self.last_test_guesses)
-        print(cm)
-
     def save_model(self, save_path):
         print("Model saved as:", save_path)
         torch.save(self.model, save_path)
 
     # - Private methods ------------------------------------------------------------------------------------------------
 
-    def __eval_validation(self, is_last_epoch = False):
+    def __eval_validation(self):
+        batch_index = 1
         valid_loss_per_epoch = 0
-        valid_accuracy_per_epoch = 0
+        num_correct = 0
 
         self.model.eval()
         with torch.no_grad():
-            torch.cuda.empty_cache()
+            while (batch_index <= self.num_batches_valid):
+                # Free GPU memory for next batch
+                torch.cuda.empty_cache()
 
-            batch = next(iter(self.valid_iter))
+                batch = next(iter(self.valid_iter))
 
-            # Get batch data, send to GPU
-            batch_titles = self.__to_GPU(batch.title[0])
-            batch_title_lengths = self.__to_GPU(batch.title[1])
-            batch_context = self.__get_context(batch)
-            batch_scores = self.__to_GPU(batch.score)
+                # Get batch data, send to GPU
+                batch_titles = self.__to_GPU(batch.title[0])
+                batch_title_lengths = self.__to_GPU(batch.title[1])
+                batch_context = self.__get_context(batch)
+                batch_scores = self.__to_GPU(batch.score)
 
-            out = self.model(batch_titles,
-                             batch_context,
-                             batch_title_lengths).squeeze()
+                out = self.model(batch_titles,
+                                 batch_context,
+                                 batch_title_lengths).squeeze()
 
-            loss = self.loss_fnc(out, batch_scores)
+                loss = self.loss_fnc(out, batch_scores)
 
-            # Record keeping
-            valid_loss_per_epoch += loss.cpu().detach().numpy()
-            valid_accuracy_per_epoch += calc_accuracy(out, batch_scores)
+                # Record keeping
+                valid_loss_per_epoch += loss.cpu().detach().numpy()
+                num_correct += calc_num_correct(out, batch_scores)
 
-        if is_last_epoch:
-            self.last_valid_answers = batch_scores.cpu().detach().numpy()
-            self.last_valid_guesses = out.cpu().detach().numpy()
+                batch_index += 1
+                del(loss) # Free up GPU space
 
-        return (valid_loss_per_epoch,
+        valid_accuracy_per_epoch = num_correct / self.n_valid
+
+        return (valid_loss_per_epoch / self.num_batches_valid,
                 valid_accuracy_per_epoch)
 
-    def __train_on_batches(self, is_last_epoch = False):
+    def __train_on_batches(self):
         batch_index = 1
         train_loss_per_epoch = 0
-        epoch_guesses = torch.cuda.FloatTensor(0)
-        epoch_answers = torch.cuda.FloatTensor(0)
+        num_correct = 0
 
         self.model.train()
         while (batch_index <= self.num_batches):
@@ -241,18 +241,12 @@ class ModelTrainer:
 
             # Record keeping
             train_loss_per_epoch += loss.cpu().detach().numpy()
-
-            epoch_guesses = torch.cat([epoch_guesses, out.float()], dim=0)
-            epoch_answers = torch.cat([epoch_answers, batch_scores.float()], dim=0)
+            num_correct += calc_num_correct(out, batch_scores)
 
             batch_index += 1
             del(loss) # Free up GPU space
 
-        train_accuracy_per_epoch = calc_accuracy(epoch_guesses, epoch_answers)
-
-        if is_last_epoch:
-            self.last_train_guesses = epoch_guesses.cpu().detach().numpy()
-            self.last_train_answers = epoch_answers.cpu().detach().numpy()
+        train_accuracy_per_epoch = num_correct / self.n_train
 
         return (train_loss_per_epoch/self.num_batches,
                 train_accuracy_per_epoch)
@@ -266,10 +260,6 @@ class ModelTrainer:
         self.max_train_accuracy = (0, 0)  # (value, epoch number)
         self.max_valid_accuracy = (0, 0)
         self.test_accuracies = 0
-        self.last_train_guesses = []
-        self.last_train_answers = []
-        self.last_valid_guesses = []
-        self.last_valid_answers = []
 
     def __zero_overfit_vars(self):
         self.overfit_accuracies = []
@@ -451,7 +441,7 @@ class ModelTrainer:
     def __create_data_iters(self):
         self.train_iter, self.valid_iter, self.test_iter = data.BucketIterator.splits(
             (self.train_data, self.valid_data, self.test_data),
-            batch_sizes=(self.batch_size, self.n_valid, self.n_test),
+            batch_sizes=(self.batch_size, self.batch_size, self.batch_size),
             sort_key=lambda x: len(x.title),
             device=None,
             sort_within_batch=True,
