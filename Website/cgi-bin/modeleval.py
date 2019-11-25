@@ -61,13 +61,15 @@ def evaluate_input(title, nsfw, classifier_type):
 
     context = torch.tensor([serious_flair, over_18] + onehot_hr + onehot_wd).float().unsqueeze(0)
     
-    prediction = torch.argmax(model(token_tensor, context, lengths))
+    prediction = model(token_tensor, context, lengths)
+    activated_prediction = torch.argmax(prediction)
     output_data = {
-        'prediction': int(prediction),
+        'prediction': int(activated_prediction),
         'serious': serious_flair,
         'over_18': over_18,
         'hour': hour,
         'weekday': weekday,
-        'title': title
+        'title': title,
+        'test': prediction
     }
     return output_data

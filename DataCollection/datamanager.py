@@ -174,3 +174,33 @@ class DataManager:
         score_onehot_df = pd.DataFrame(score_onehot_list, columns=score_columns)
         merged_onehot_df = pd.concat([df.reset_index(drop=True), score_onehot_df.reset_index(drop=True)], axis=1)
         return merged_onehot_df.drop(columns=['score'])
+
+    def get_stats(self, df):
+        stats = {'frequency' : {}}
+
+        weekday_hour_list = df['created_utc'].apply(filters.convert_date_time).values.tolist()
+
+        weekday_hour_df = pd.DataFrame(weekday_hour_list, columns=['created_utc', 'hour', 'weekday'])
+
+        weekday_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+        temp_df = df
+        temp_df['hour'] = weekday_hour_df['hour']
+        temp_df['weekday'] = weekday_hour_df['weekday'].apply(lambda x: weekday_names[x])
+
+
+        # Frequencies of value occurrences
+        freq_attrs = ['score', 'hour', 'weekday']
+        for freq_attr in freq_attrs:
+            if freq_attr in temp_df:
+                stats['frequency'][freq_attr] = df[freq_attr].value_counts()
+        
+        # Average title length
+        total_length = 0
+        for post_title in df['title']:
+            total_length += len(post_title)
+    
+        stats['avg_title_len'] = total_length/len(df['title'])
+
+        return stats
+

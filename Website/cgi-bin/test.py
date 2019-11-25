@@ -12,11 +12,11 @@ classifier_type = form.getvalue('classifier_type')
 classifiers = {
     '2': {
         'possible_outcomes': ['low', 'high'], 
-        'outcome_conversions': ['score is 100 or less', 'score is 100 or higher']
+        'outcome_conversions': ['score is 100 or less', 'score is higher than 100']
     },
     '3': {
         'possible_outcomes': ['very low', 'okay', 'high'], 
-        'outcome_conversions': ['score is 0 or 1', 'score is between 2 and 99', 'score is 100 or higher']
+        'outcome_conversions': ['score is 0 or 1', 'score is between 2 and 499', 'score is 500 or higher']
     },
     '5': {
         'possible_outcomes': ['zero', 'low', 'decent', 'high', 'viral'], 

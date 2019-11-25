@@ -10,7 +10,8 @@ Modifies title to be more suitable for word vector transformation.
 """
 
 def update_title(title):
-    new_title = replace_subreddit(title)
+    new_title = title.lower()
+    new_title = replace_subreddit(new_title)
     new_title = update_currency_to_word(new_title)
     new_title = update_numbers(new_title)
     new_title = replace_common_words(new_title)

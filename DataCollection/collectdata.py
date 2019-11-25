@@ -39,7 +39,8 @@ class DataCollector:
                      'convert',
                      'clean',
                      'split',
-                     'scrape'
+                     'scrape',
+                     'stats'
                      ])
         args = parser.parse_args(sys.argv[1:2])
 
@@ -329,6 +330,28 @@ class DataCollector:
             test, timestamp=False, file_identifier='test_' + new_file_name)
         self.data_manager.save_to_csv(
             overfit, timestamp=False, file_identifier='overfit_' + new_file_name)
+
+    def stats(self):
+        # Create an argument parser to extract subcommand args
+        parser = argparse.ArgumentParser(
+            description='Retrieves statistics about a particular dataset',
+            usage='collectdata.py split file [-h, --help]')
+        parser.add_argument('file')
+
+        # Only take arguments after the subcommand
+        args = parser.parse_args(sys.argv[2:])
+
+        post_dataset = self.data_manager.load_from_csv(args.file)
+        if post_dataset is False:
+            raise IOError('Failed to load CSV file:' + args.file)
+
+        data_stats = self.data_manager.get_stats(post_dataset)
+
+        for data_freq in data_stats['frequency']:
+            print(f'Value frequencies of {data_freq}: \n{data_stats["frequency"][data_freq]}')
+
+        print(f'Average title length: {data_stats["avg_title_len"]}')
+
 
 
 def main(*args, **kwargs):
