@@ -23756,13 +23756,13 @@ License: none (public domain)
                                                                                     </g>
                                                                                 </svg>OC</div>
                                                                         </div>
-                                                                        <div aria-disabled="false"
-                                                                            class="_5x1WjCc4HQF6tqnODOql0 ypAk-GyDXsczk_xkC7Eq_"
+                                                                        <div aria-disabled="true"
+                                                                            class="_5x1WjCc4HQF6tqnODOql0 ypAk-GyDXsczk_xkC7Eq_ _5x1WjCc4HQF6tqnODOql0 ypAk-GyDXsczk_xkC7Eq_ _3hBIa9WhGl-wxARDDgBvSE"
                                                                             role="button" tabindex="0"
                                                                             id="spoiler_checker"
                                                                             aria-label="Mark as a spoiler">
                                                                             <div
-                                                                                id="spoiler_svg" class="stbc2Exoq0W4ZkGltglct stbc2Exoq0W4ZkGltglct ">
+                                                                                id="spoiler_svg" class="stbc2Exoq0W4ZkGltglct stbc2Exoq0W4ZkGltglct _3rEHSruwAvICnPAngYiIW1">
                                                                                 <svg class="_3KTRWtVakNSggrbPPnHkHf"
                                                                                     viewBox="0 0 20 20" version="1.1">
                                                                                     <g stroke="none">
@@ -24730,16 +24730,16 @@ License: none (public domain)
                 nsfw_checker.style = "";
             }
         }
-        spoiler_checker.onclick = function() {
-            spoiler_checkbox.checked = !spoiler_checkbox.checked;
-            if (spoiler_checkbox.checked) {
-                spoiler_checker.style.cssText = "color: rgb(255, 255, 255); fill: rgb(255, 255, 255); background-color: rgb(0, 0, 0)";
-                spoiler_svg.innerHTML = '<svg class="_1UzslKYEQzOzo6YjHnE2g" viewBox="0 0 20 22" xmlns="http://www.w3.org/2000/svg"><g><path d="M8.9310375,15.1995 C8.70135,15.41825 8.38963125,15.541375 8.0647875,15.541375 C8.052975,15.541375 8.04181875,15.54075 8.03000625,15.54075 C7.69335,15.531375 7.37506875,15.39075 7.15063125,15.151375 L4.0879125,11.88075 C3.637725,11.400125 3.68169375,10.662625 4.18700625,10.23325 C4.6916625,9.805125 5.4660375,9.846375 5.91688125,10.327625 L8.115975,12.676375 L14.8550063,6.25825 C15.3327563,5.802625 16.1091,5.802625 16.5875063,6.25825 C17.0659125,6.71325 17.0659125,7.452625 16.5875063,7.907625 L8.9310375,15.1995 Z" fill="inherit"></path></g></svg>SPOILER';
-            } else {
-                spoiler_svg.innerHTML = '<svg class="_3KTRWtVakNSggrbPPnHkHf" viewBox="0 0 20 20" version="1.1"><g stroke="none"><g transform="translate(-34.000000, -136.000000)" fill="inherit"><path d="M45.2,147.2 L48.8,147.2 C49.46272,147.2 50,146.66272 50,146 C50,145.33728 49.46272,144.8 48.8,144.8 L45.2,144.8 L45.2,141.2 C45.2,140.53728 44.66272,140 44,140 C43.33728,140 42.8,140.53728 42.8,141.2 L42.8,144.8 L39.2,144.8 C38.53728,144.8 38,145.33728 38,146 C38,146.66272 38.53728,147.2 39.2,147.2 L42.8,147.2 L42.8,150.8 C42.8,151.46272 43.33728,152 44,152 C44.66272,152 45.2,151.46272 45.2,150.8 L45.2,147.2 Z"></path></g></g></svg>SPOILER';
-                spoiler_checker.style = "";
-            }
-        }
+        // spoiler_checker.onclick = function() {
+        //     spoiler_checkbox.checked = !spoiler_checkbox.checked;
+        //     if (spoiler_checkbox.checked) {
+        //         spoiler_checker.style.cssText = "color: rgb(255, 255, 255); fill: rgb(255, 255, 255); background-color: rgb(0, 0, 0)";
+        //         spoiler_svg.innerHTML = '<svg class="_1UzslKYEQzOzo6YjHnE2g" viewBox="0 0 20 22" xmlns="http://www.w3.org/2000/svg"><g><path d="M8.9310375,15.1995 C8.70135,15.41825 8.38963125,15.541375 8.0647875,15.541375 C8.052975,15.541375 8.04181875,15.54075 8.03000625,15.54075 C7.69335,15.531375 7.37506875,15.39075 7.15063125,15.151375 L4.0879125,11.88075 C3.637725,11.400125 3.68169375,10.662625 4.18700625,10.23325 C4.6916625,9.805125 5.4660375,9.846375 5.91688125,10.327625 L8.115975,12.676375 L14.8550063,6.25825 C15.3327563,5.802625 16.1091,5.802625 16.5875063,6.25825 C17.0659125,6.71325 17.0659125,7.452625 16.5875063,7.907625 L8.9310375,15.1995 Z" fill="inherit"></path></g></svg>SPOILER';
+        //     } else {
+        //         spoiler_svg.innerHTML = '<svg class="_3KTRWtVakNSggrbPPnHkHf" viewBox="0 0 20 20" version="1.1"><g stroke="none"><g transform="translate(-34.000000, -136.000000)" fill="inherit"><path d="M45.2,147.2 L48.8,147.2 C49.46272,147.2 50,146.66272 50,146 C50,145.33728 49.46272,144.8 48.8,144.8 L45.2,144.8 L45.2,141.2 C45.2,140.53728 44.66272,140 44,140 C43.33728,140 42.8,140.53728 42.8,141.2 L42.8,144.8 L39.2,144.8 C38.53728,144.8 38,145.33728 38,146 C38,146.66272 38.53728,147.2 39.2,147.2 L42.8,147.2 L42.8,150.8 C42.8,151.46272 43.33728,152 44,152 C44.66272,152 45.2,151.46272 45.2,150.8 L45.2,147.2 Z"></path></g></g></svg>SPOILER';
+        //         spoiler_checker.style = "";
+        //     }
+        // }
         </script>
     <script async="" defer=""
         src="https://www.redditstatic.com/desktop2x/CommentsPage.df81d044ac16e31d09a9.js"></script>

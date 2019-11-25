@@ -1,12 +1,11 @@
 import cgi
 import cgitb
-from modeleval import tester
+from modeleval import evaluate_input
 cgitb.enable()
 
 form = cgi.FieldStorage()
 
 title = form.getvalue('title')
-spoiler = form.getvalue('spoiler')
 nsfw = form.getvalue('nsfw')
 
 
@@ -44,10 +43,9 @@ print ('            <div class="col-md-auto text-center">')
 print ('                <p>You have entered</p>')
 print ('                <div class="pt-2 px-3" id="inputinfo">')
 print(f'                    <p>Title: <em>{title}</em></p>')
-print(f'                    <p>Spoiler: <em>{spoiler}</em></p>')
 print(f'                    <p>NSFW: <em>{nsfw}</em></p>')
 print ('                </div>')
-print(f'                <p>Your post score is <strong>{tester(title)}</strong></p>')
+print(f'                <p>Your post score is <strong>{evaluate_input(title, nsfw)}</strong></p>')
 print ('            </div>')
 print ('        </div>')
 print ('    </div>')
