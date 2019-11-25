@@ -5,7 +5,15 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
+def calc_num_correct(guesses, answers):
+    guesses = torch.argmax(guesses, dim=1)
+    return torch.sum(torch.eq(guesses.float(), answers.float())).item()
+
 def calc_accuracy(guesses, answers):
+    guesses = torch.argmax(guesses, dim=1)
+    return (torch.sum(torch.eq(guesses.float(), answers.float())).item()) / guesses.shape[0]
+
+def calc_accuracy_binary(guesses, answers):
     guesses = guesses.cpu().detach()
     answers = answers.cpu().detach().numpy()
     n = len(answers)
