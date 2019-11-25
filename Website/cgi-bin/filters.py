@@ -2,7 +2,7 @@ from datetime import datetime
 import re
 from pandas import isna
 from math import log10
-from config import get_config
+# from config import get_config
 
 
 """
@@ -135,13 +135,13 @@ def convert_date_time(created_utc):
     datetime_post = datetime.fromtimestamp(created_utc)
     return (created_utc, datetime_post.hour, datetime_post.weekday())
 
-"""
-Returns a list representing a onehot encoded vector for the score
-"""
+# """
+# Returns a list representing a onehot encoded vector for the score
+# """
 
-def convert_onehot(score):
-    score_classes = get_config('classes')
-    onehot_scores = [1 if class_num == score else 0 for class_num in range(len(score_classes))]
+# def convert_onehot(score):
+#     score_classes = get_config('classes')
+#     onehot_scores = [1 if class_num == score else 0 for class_num in range(len(score_classes))]
     
-    # print(onehot_scores)
-    return onehot_scores
+#     # print(onehot_scores)
+#     return onehot_scores

@@ -6,20 +6,18 @@ class Baseline(nn.Module):
 
     def __init__(self, emb_dim, vocab):
         super(Baseline, self).__init__()
-        num_context_vars = 2
+        num_context_vars = 2 + 24 + 7 # serious - nsfw - hour0 - ... - hour23 - mon - ... - sun
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.fc1 = nn.Linear(emb_dim + num_context_vars, 64)
-        self.fc2 = nn.Linear(64, 1)
+        self.fc2 = nn.Linear(64, 5)
 
-    def forward(self, title, serious, nsfw, lengths=None):
+    def forward(self, title, context, lengths=None):
         embedded = self.embedding(title)
 
         average = embedded.mean(0)
-        serious = serious.unsqueeze(1).float()
-        nsfw = nsfw.unsqueeze(1).float()
 
-        withcontext = torch.cat([average, serious, nsfw], 1)
+        withcontext = torch.cat([average, context], 1)
 
         output = torch.sigmoid(self.fc1(withcontext).squeeze(1))
         output = self.fc2(output)
@@ -29,7 +27,7 @@ class Baseline(nn.Module):
 class CNN(nn.Module):
     def __init__(self, emb_dim, vocab, n_filters):
         super(CNN, self).__init__()
-        num_context_vars = 2
+        num_context_vars = 2 + 24 + 7 # serious - nsfw - hour0 - ... - hour23 - mon - ... - sun
 
         self.n_filters = n_filters
 
@@ -54,10 +52,10 @@ class CNN(nn.Module):
         self.fc2 = nn.Linear(300, 100)
         self.bn_fc2 = nn.BatchNorm1d(100)
         self.dr_fc2 = nn.Dropout2d(0.5)
-        self.fc3 = nn.Linear(100, 1)
+        self.fc3 = nn.Linear(100, 5)
         self.LeakyRelu = nn.LeakyReLU()
 
-    def forward(self, title, serious, nsfw,  lengths):
+    def forward(self, title, context, lengths):
 
         batch_size = title.shape[1]
         max_length = torch.max(lengths)
@@ -86,9 +84,7 @@ class CNN(nn.Module):
         concatenated = torch.reshape(concatenated, (batch_size, 4 * self.n_filters))
 
         # Add context flags (booleans)
-        serious = torch.transpose(serious, 0, 1).float()
-        nsfw = torch.transpose(nsfw, 0, 1).float()
-        withcontext = torch.cat([concatenated, serious, nsfw], 1)
+        withcontext = torch.cat([concatenated, context], 1)
 
         # MLP
         out = self.dr_fc1(self.LeakyRelu(self.bn_fc1(self.fc1(withcontext))))
@@ -100,21 +96,18 @@ class CNN(nn.Module):
 class RNN(nn.Module):
     def __init__(self, emb_dim, vocab, hidden_dim):
         super(RNN, self).__init__()
-        num_context_vars = 2
+        num_context_vars = 2 + 24 + 7  # serious - nsfw - hour0 - ... - hour23 - mon - ... - sun
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.GRU = nn.GRU(emb_dim, hidden_dim)
-        self.fc = nn.Linear(hidden_dim + num_context_vars, 1)
+        self.fc = nn.Linear(hidden_dim + num_context_vars, 5)
 
-    def forward(self, title, serious, nsfw, lengths):
+    def forward(self, title, context, lengths):
         embedded = self.embedding(title)
         gru_out, h = self.GRU(embedded)
         h = h.squeeze()
 
-        serious = serious.unsqueeze(1).float()
-        nsfw = nsfw.unsqueeze(1).float()
-
-        withcontext = torch.cat([h, serious, nsfw], 1)
+        withcontext = torch.cat([h, context], 1)
 
         out = self.fc(withcontext)
 
