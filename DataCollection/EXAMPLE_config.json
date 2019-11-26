@@ -8,14 +8,20 @@
     },
     
     "fetch_attributes": [
+        "id", 
         "title",
-        "id",
-        "link_flair_text",
-        "num_comments",
-        "spoiler",
         "over_18",
         "created_utc",
+        "link_flair_text",
         "score"
+    ],
+
+    "classes": [
+        "=<1",
+        "=>0&score=<10",
+        "=>9&score=<100",
+        "=>99&score=<1000",
+        "=>999"
     ],
     
     "data_export_path": "./Data/"

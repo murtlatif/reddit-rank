@@ -190,7 +190,7 @@ class DataManager:
 
 
         # Frequencies of value occurrences
-        freq_attrs = ['score', 'hour', 'weekday']
+        freq_attrs = ['score', 'hour', 'weekday', 'spoiler']
         for freq_attr in freq_attrs:
             if freq_attr in temp_df:
                 stats['frequency'][freq_attr] = df[freq_attr].value_counts()
@@ -199,7 +199,7 @@ class DataManager:
         total_length = 0
         for post_title in df['title']:
             total_length += len(post_title)
-    
+        
         stats['avg_title_len'] = total_length/len(df['title'])
 
         return stats
