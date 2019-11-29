@@ -24,7 +24,10 @@ class ModelTrainer:
         self.model_type = args.model
         self.emb_dim = args.emb_dim
         self.rnn_hidden_dim = args.rnn_hidden_dim
-        self.num_kernels = args.num_kernels
+        self.num_kernels1 = args.num_kernels1
+        self.num_kernels2 = args.num_kernels2
+        self.num_kernels3 = args.num_kernels3
+        self.num_kernels4 = args.num_kernels4
         self.save_path = args.save_path
         self.data_path = args.data_path
 
@@ -42,7 +45,12 @@ class ModelTrainer:
             print("Baseline")
         elif self.model_type == 'cnn':
             print("CNN")
-            self.model = CNN(self.emb_dim, self.vocab, self.num_kernels, self.num_classes)
+            self.model = CNN(self.emb_dim, self.vocab,
+                             self.num_kernels1,
+                             self.num_kernels2,
+                             self.num_kernels3,
+                             self.num_kernels4,
+                             self.num_classes)
         elif self.model_type == 'rnn':
             print("RNN")
             self.model = RNN(self.emb_dim, self.vocab, self.rnn_hidden_dim, self.num_classes)

@@ -25,28 +25,28 @@ class Baseline(nn.Module):
         return output
 
 class CNN(nn.Module):
-    def __init__(self, emb_dim, vocab, n_filters, classes):
+    def __init__(self, emb_dim, vocab, n_filters1, n_filters2, n_filters3, n_filters4, classes):
         super(CNN, self).__init__()
         num_context_vars = 2 + 24 + 7 # serious - nsfw - hour0 - ... - hour23 - mon - ... - sun
 
-        self.n_filters = n_filters
+        self.n_filters = n_filters1 + n_filters2 + n_filters3 + n_filters4
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.conv1 = nn.Conv2d(in_channels=1,
-                               out_channels=n_filters,
+                               out_channels=n_filters1,
                                kernel_size=(emb_dim, 1))
         self.conv2 = nn.Conv2d(in_channels=1,
-                               out_channels=n_filters,
+                               out_channels=n_filters2,
                                kernel_size=(emb_dim, 2))
         self.conv3 = nn.Conv2d(in_channels=1,
-                               out_channels=n_filters,
+                               out_channels=n_filters3,
                                kernel_size=(emb_dim, 3))
         self.conv4 = nn.Conv2d(in_channels=1,
-                               out_channels=n_filters,
+                               out_channels=n_filters4,
                                kernel_size=(emb_dim, 4))
-        self.bn_conv = nn.BatchNorm2d(n_filters * 4)
+        self.bn_conv = nn.BatchNorm2d(n_filters1 + n_filters2 + n_filters3 + n_filters4)
         self.dr_conv = nn.Dropout2d(0.1)
-        self.fc1 = nn.Linear(n_filters * 4  + num_context_vars, 300)
+        self.fc1 = nn.Linear(n_filters1 + n_filters2 + n_filters3 + n_filters4 + num_context_vars, 300)
         self.bn_fc1 = nn.BatchNorm1d(300)
         self.dr_fc1 = nn.Dropout2d(0.5)
         self.fc2 = nn.Linear(300, 100)
@@ -81,7 +81,7 @@ class CNN(nn.Module):
         concatenated = self.dr_conv(self.bn_conv(concatenated))
 
         # Reshape output
-        concatenated = torch.reshape(concatenated, (batch_size, 4 * self.n_filters))
+        concatenated = torch.reshape(concatenated, (batch_size, self.n_filters))
 
         # Add context flags (booleans)
         withcontext = torch.cat([concatenated, context], 1)
