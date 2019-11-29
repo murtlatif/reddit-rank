@@ -4,13 +4,13 @@ import torch.nn.functional as F
 
 class Baseline(nn.Module):
 
-    def __init__(self, emb_dim, vocab):
+    def __init__(self, emb_dim, vocab, classes):
         super(Baseline, self).__init__()
         num_context_vars = 2 + 24 + 7 # serious - nsfw - hour0 - ... - hour23 - mon - ... - sun
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.fc1 = nn.Linear(emb_dim + num_context_vars, 64)
-        self.fc2 = nn.Linear(64, 5)
+        self.fc2 = nn.Linear(64, classes)
 
     def forward(self, title, context, lengths=None):
         embedded = self.embedding(title)
@@ -25,7 +25,7 @@ class Baseline(nn.Module):
         return output
 
 class CNN(nn.Module):
-    def __init__(self, emb_dim, vocab, n_filters):
+    def __init__(self, emb_dim, vocab, n_filters, classes):
         super(CNN, self).__init__()
         num_context_vars = 2 + 24 + 7 # serious - nsfw - hour0 - ... - hour23 - mon - ... - sun
 
@@ -52,7 +52,7 @@ class CNN(nn.Module):
         self.fc2 = nn.Linear(300, 100)
         self.bn_fc2 = nn.BatchNorm1d(100)
         self.dr_fc2 = nn.Dropout2d(0.5)
-        self.fc3 = nn.Linear(100, 5)
+        self.fc3 = nn.Linear(100, classes)
         self.LeakyRelu = nn.LeakyReLU()
 
     def forward(self, title, context, lengths):
@@ -94,13 +94,14 @@ class CNN(nn.Module):
         return out
 
 class RNN(nn.Module):
-    def __init__(self, emb_dim, vocab, hidden_dim):
+    def __init__(self, emb_dim, vocab, hidden_dim, classes):
         super(RNN, self).__init__()
         num_context_vars = 2 + 24 + 7  # serious - nsfw - hour0 - ... - hour23 - mon - ... - sun
 
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors)
         self.GRU = nn.GRU(emb_dim, hidden_dim)
-        self.fc = nn.Linear(hidden_dim + num_context_vars, 5)
+        self.fc1 = nn.Linear(hidden_dim + num_context_vars, 64)
+        self.fc2 = nn.Linear(64, classes)
 
     def forward(self, title, context, lengths):
         embedded = self.embedding(title)
@@ -109,6 +110,7 @@ class RNN(nn.Module):
 
         withcontext = torch.cat([h, context], 1)
 
-        out = self.fc(withcontext)
+        output = torch.sigmoid(self.fc1(withcontext).squeeze(1))
+        output = self.fc2(output)
 
         return out

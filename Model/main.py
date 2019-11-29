@@ -50,6 +50,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--num-classes', type=int, default=2)
     parser.add_argument('--model', type=str, default='baseline')
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--lr', type=float, default=0.1)
@@ -73,5 +74,5 @@ python main.py --model "baseline" --batch-size 64 --lr 0.1 --epochs 100 --emb-di
 
 # NO SAVE NO OVERFIT
 """
-python main.py --model "cnn" --batch-size 5000 --lr 0.001 --epochs 100 --emb-dim 100 --rnn-hidden-dim 100 --num-kernels 100 --data-path ""
+python main.py --model "cnn" --batch-size 10000 --lr 0.0001 --epochs 37 --emb-dim 100 --rnn-hidden-dim 100 --num-kernels 500 --data-path "./data/new_3/" --save-model 1 --save-path "cnn_3.pt"
 """

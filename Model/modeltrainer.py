@@ -17,6 +17,7 @@ class ModelTrainer:
         torch.manual_seed(0)
 
         # Load in hyperparameters
+        self.num_classes = args.num_classes
         self.batch_size = args.batch_size
         self.learning_rate = args.lr
         self.num_epochs = args.epochs
@@ -36,15 +37,15 @@ class ModelTrainer:
         self.__create_vocab_obj()
 
         # Create model
-        self.model = Baseline(self.emb_dim, self.vocab)
+        self.model = Baseline(self.emb_dim, self.vocab, self.num_classes)
         if self.model_type == 'baseline':
             print("Baseline")
         elif self.model_type == 'cnn':
             print("CNN")
-            self.model = CNN(self.emb_dim, self.vocab, self.num_kernels)
+            self.model = CNN(self.emb_dim, self.vocab, self.num_kernels, self.num_classes)
         elif self.model_type == 'rnn':
             print("RNN")
-            self.model = RNN(self.emb_dim, self.vocab, self.rnn_hidden_dim)
+            self.model = RNN(self.emb_dim, self.vocab, self.rnn_hidden_dim, self.num_classes)
 
         # Move model to device selected
         self.model.to(self.device, non_blocking=True)
@@ -171,6 +172,11 @@ class ModelTrainer:
     def save_model(self, save_path):
         print("Model saved as:", save_path)
         torch.save(self.model, save_path)
+
+    def print_confusion_matrix(self, predictions, labels):
+        cm = confusion_matrix(labels, predictions)
+        print("Confusion Matrix:")
+        print(cm)
 
     # - Private methods ------------------------------------------------------------------------------------------------
 
