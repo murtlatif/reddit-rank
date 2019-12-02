@@ -7,8 +7,10 @@
 
 * [Project Tasks](#tasks "Jump to Project Tasks")
     * [Project Proposal Report](#proposal_report "Jump to Project Proposal")
-    * [Project Proposal Presentation](#proposal_presentation)
+    * [Project Proposal Presentation](#proposal_presentation "Jump to Project Proposal Presentation")
     * [Project Progress Report](#progress_report "Jump to Progress Report")
+    * [Project Final Presentation](#final_presentation "Jump to Final Presentation")
+    * [Project Final Report](#final_report "Jump to Final Report")
 
 
 <br />
@@ -45,8 +47,34 @@ The Project Proposal Presentation is the visual aid to a presentation that quick
 ### Project Progress Report
 [View Project Progress Report](ProgressReport/RedditRank-ProgressReport.pdf "View Project Progress Report")
 
-The Project Progress Report is to ensure that we are on track to compelte the project as planned. It shows that we have made good progress on:
+The Project Progress Report is to ensure that we are on track to complete the project as planned. It shows that we have made good progress on:
 * Collecting almost all the data
 * Producing a baseline model
 * Producing at least one result, including one qualitative or quantitative comparison
 * Reflecting upon the feedback given at proposal time
+
+<a name='final_presentation'></a>
+### Final Presentation
+[View Final Presentation](FinalPresentation/RedditRank-FinalPresentation.pptx "View Final Presentation")
+
+The Final Presentation is the visual aid to a presentation that gave a complete overview of the project. It touches on the following components:
+* Introduction and Motivation
+* Data and Data Processing
+* Model and Architecture
+* Quantitative and Qualitative Results
+* Discussions and Learnings
+
+<a name='final_report'></a>
+### Final Report
+[View Final Report](FinalReport/RedditRank-FinalReport.pdf "View Final Report")
+
+The Final Report is a complete summary of the work done in the project. It describes what we have accomplished and why, what results we have obtained as well as an interpretation of those results, and an ethical analysis. The full set of points that were covered are:
+* Goal and Motivation of Project
+* Background and Related Works
+* Data Collection, Cleaning and Statistics
+* Final Neural Network Model Architecture
+* Baseline Model Comparison
+* Quantitative and Qualitative Results
+* Discussion, Interpretation and Learnings of Results
+* Ethical Analysis and Framework
+* Project Difficulty and Quality
